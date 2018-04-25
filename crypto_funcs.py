@@ -5,6 +5,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Signature import pss
 from Crypto.Hash import SHA3_256
+from Crypto.Hash import HMAC, SHA
 
 def encryptString(plaintext, key):
     # Encryption#
@@ -55,8 +56,10 @@ def get_rsa_key():
     RSA_key = RSA.generate(1024)
     return RSA_key;
 
+
 def test_rsa():
     RSA_key = get_rsa_key()
+
 
     cipherText_RSA = encrypt_RSA(b"RSA a fa alatt", RSA_key.publickey());
     print(cipherText_RSA.hex())
@@ -84,3 +87,32 @@ def validateSigniture(message, pub_rsa_key, signature):
 
 
 
+
+# ------HMAC-------
+
+def generate_HMAC(message, key):
+    hmac = HMAC.new(key, digestmod=SHA)
+    hmac.update(message)
+    return hmac
+
+
+
+def check_HMAC(message, key, expected_hmac):
+    hmac = HMAC.new(key, digestmod=SHA)
+    hmac.update(message)
+    try:
+        hmac.verify(expected_hmac)
+        print("The message '%s' is authentic" % message)
+    except ValueError:
+        print("The message or the key is wrong")
+
+
+mackey = b'yoursecretMACkey'
+msg = b'Hello World! HMAC is a keyed hash function. '
+
+mac = generate_HMAC(msg, mackey);
+print("Message HMAC");
+print(mac.hexdigest());
+print(mac.digest());
+
+check_HMAC(msg, mackey, b'C\xach\xf8R\x13U\xfaA>\x19\xf6at\x81\x10h\xba\xff\x19');
