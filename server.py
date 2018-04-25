@@ -8,12 +8,14 @@ users = [
     {
         'id': 1,
         'mail': u'test@gmail.com',
-        'public_key': u'testpublicKey12312asdasdfw3'
+        'public_key': u'testpublicKey12312asdasdfw3',
+        'ip' : u'192.168.1.2'
     },
     {
         'id': 2,
         'mail': u'test2@gmail.com',
-        'public_key': u'testpublicKey1234876123948ksf'
+        'public_key': u'testpublicKey1234876123948ksf',
+        'ip' : u'192.168.1.5'
     }
 ]
 
@@ -39,7 +41,8 @@ def register_user():
     user = {
         'id': users[-1]['id'] + 1,
         'mail': request.json['mail'],
-        'public_key': request.json['public_key']
+        'public_key': request.json['public_key'],
+        'ip':request.remote_addr
     }
     users.append(user)
     return jsonify(user), 201
