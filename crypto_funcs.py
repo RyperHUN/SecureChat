@@ -3,6 +3,8 @@ from Crypto.Random import get_random_bytes
 from Crypto.Util import Padding
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
+from Crypto.Signature import pss
+from Crypto.Hash import SHA3_256
 
 def encryptString(plaintext, key):
     # Encryption#
@@ -56,5 +58,24 @@ print(cipherText_RSA.hex())
 
 plainText_RSA = decrypt_RSA(cipherText_RSA, RSA_key);
 print(plainText_RSA)
+
+
+# ------Signing-------
+
+def signMessage(message, priv_rsa_key):
+    #rsa_private key
+    hash_mess = SHA3_256.new(message)
+    signature = pss.new(priv_rsa_key).sign(hash_mess)
+    return signature
+
+def validateSigniture(message, pub_rsa_key, signature):
+    verifier = pss.new(pub_rsa_key)
+    hash_mess = SHA3_256.new(message)
+    try:
+        verifier.verify(hash_mess, signature)
+        return True
+    except (ValueError, TypeError):
+        return False
+
 
 
