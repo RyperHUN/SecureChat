@@ -51,7 +51,7 @@ def decrypt_RSA(ciphertext, key):
 
 RSA_key = RSA.generate(4096);
 
-cipherText_RSA = encrypt_RSA(b"RSA a fa alatt", RSA_key);
+cipherText_RSA = encrypt_RSA(b"RSA a fa alatt", RSA_key.publickey());
 print(cipherText_RSA.hex())
 
 plainText_RSA = decrypt_RSA(cipherText_RSA, RSA_key);
