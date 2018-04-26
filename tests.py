@@ -13,12 +13,23 @@ class FlaskTestCase(unittest.TestCase):
         self.flaskapp.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
         self.startLen = 2;
 
-    def test_empty_db(self):
+    def user_size_test(self, num):
         r = self.app.get('/users')
         jsonAnswer = json.loads(r.data);
         #print(json.dumps(jsonAnswer, indent=4));
         array = jsonAnswer["users"];
-        assert len(array) == self.startLen
+        assert len(array) == num
+
+    def test_start_test(self):
+        self.user_size_test(self.startLen);
+
+    def test_register(self):
+        r = self.app.post('/register_user', json={
+            'mail' : 'added_mail@gmail.com',
+            'public_key' : 'testkey1234'
+        });
+        print(r.data)
+
 
 if __name__ == '__main__':
     unittest.main()
