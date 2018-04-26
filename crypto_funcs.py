@@ -106,13 +106,13 @@ def check_HMAC(message, key, expected_hmac):
     except ValueError:
         print("The message or the key is wrong")
 
+def test_mac():
+    mackey = b'yoursecretMACkey'
+    msg = b'Hello World! HMAC is a keyed hash function. '
 
-mackey = b'yoursecretMACkey'
-msg = b'Hello World! HMAC is a keyed hash function. '
+    mac = generate_HMAC(msg, mackey);
+    print("Message HMAC");
+    print(mac.hexdigest());
+    print(mac.digest());
 
-mac = generate_HMAC(msg, mackey);
-print("Message HMAC");
-print(mac.hexdigest());
-print(mac.digest());
-
-check_HMAC(msg, mackey, b'C\xach\xf8R\x13U\xfaA>\x19\xf6at\x81\x10h\xba\xff\x19');
+    check_HMAC(msg, mackey, b'C\xach\xf8R\x13U\xfaA>\x19\xf6at\x81\x10h\xba\xff\x19');

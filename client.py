@@ -31,13 +31,14 @@ def send_message(message, to, aeskey):
     #print(r.status_code)
     return r.json();
 
-print(get_users())
-aeskey = b'0123456789abcdef0123456789abcdef'
-#print(crypto.encryptString(b'asd', aeskey).hex());
-RSA_key = crypto.get_rsa_key();
-RSA_public = RSA_key.publickey().exportKey(format='PEM').decode('ASCII');
-#print(RSA_public)
-#print(register_user('added_test@gmail.com', RSA_public))
-print(send_message(b'elkuldott uzenet wazzzeee', 'test@gmail.com', aeskey));
+def client_test():
+    print(get_users())
+    aeskey = b'0123456789abcdef0123456789abcdef'
+    #print(crypto.encryptString(b'asd', aeskey).hex());
+    RSA_key = crypto.get_rsa_key();
+    RSA_public = RSA_key.publickey().exportKey(format='PEM').decode('ASCII');
+    #print(RSA_public)
+    #print(register_user('added_test@gmail.com', RSA_public))
+    print(send_message(b'elkuldott uzenet wazzzeee', 'test@gmail.com', aeskey));
 
-print(get_user('added_test@gmail.com'));
+    print(get_user('added_test@gmail.com'));
