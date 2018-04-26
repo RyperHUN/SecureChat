@@ -5,6 +5,8 @@ import json
 class RequestApi:
     def post(self,uri,data):
         return
+    def postGet(self,uri,data):
+        return;
     def get(self,uri):
         return
 
@@ -16,6 +18,10 @@ class TestRequest(RequestApi):
         r = self.app.post(uri, content_type='application/json',
                           data=json.dumps(data));
         return r.status_code
+    def postGet(self,uri,data):
+        r = self.app.post(uri, content_type='application/json',
+                          data=json.dumps(data));
+        return json.loads(r.data);
     def get(self,uri):
         r = self.app.get(uri)
         jsonAnswer = json.loads(r.data);
@@ -28,6 +34,12 @@ class ClientRequest(RequestApi):
     def post(self,uri,data):
         r = requests.post(self.baseUri + uri, json=data)
         return r.status_code
+
+    def postGet(self,uri,data):
+        r = requests.post(self.baseUri + uri, json=data)
+        print(r)
+        return r.json();
+
     def get(self,uri):
         r = requests.get(self.baseUri + uri)
         if r.status_code == 404:
@@ -65,6 +77,10 @@ class Client:
         #print(r.status_code)
         return r;
 
+    def login(self, mail):
+        r = self.request.postGet('/login', {'mail' : mail});
+        return r;
+
 def client_test():
     client = Client(ClientRequest('http://127.0.0.1:5000'));
     print(client.get_users())
@@ -77,7 +93,7 @@ def client_test():
     print(client.send_message(b'elkuldott uzenet wazzzeee', 'test@gmail.com', aeskey));
 
     print(client.get_user('added_test@gmail.com'));
-
+    print(client.login('added_test@gmail.com'))
 #client_test()
 #HTTP codes -> 201 -> first created
 #HTTP codes -> 200 -> already created
