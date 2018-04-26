@@ -37,6 +37,10 @@ class FlaskTestCase(unittest.TestCase):
         r = self.client.send_message(b'test message','added_mail@gmail.com',self.aeskey);
         self.assertEqual(True, 200 <= r and r <= 201);
 
+    def test_03_login_test(self):
+        r = self.client.login('test@gmail.com');
+        self.assertIn('sessionId', r);
+
 if __name__ == '__main__':
     unittest.main()
 
