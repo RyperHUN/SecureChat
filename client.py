@@ -1,5 +1,6 @@
 import requests
 import crypto_funcs as crypto
+import json
 
 class RequestApi:
     def post(self,uri,data):
@@ -8,13 +9,17 @@ class RequestApi:
         return
 
 class TestRequest(RequestApi):
-    def __init__(self,flaskApp):
-        self.app = flaskApp;
+    def __init__(self,flaskTestClient):
+        self.app = flaskTestClient;
 
     def post(self,uri,data):
-        return
+        r = self.app.post(uri, content_type='application/json',
+                          data=json.dumps(data));
+        return r.status_code
     def get(self,uri):
-        return
+        r = self.app.get(uri)
+        jsonAnswer = json.loads(r.data);
+        return jsonAnswer;
 
 class ClientRequest(RequestApi):
     def __init__(self, baseUri):
@@ -22,46 +27,46 @@ class ClientRequest(RequestApi):
 
     def post(self,uri,data):
         r = requests.post(self.baseUri + uri, json=data)
-        return r
+        return r.status_code
     def get(self,uri):
         r = requests.get(self.baseUri + uri)
-        return r
+        if r.status_code == 404:
+            return {}
+        return r.json();
 
 class Client:
     def __init__(self,request):
         self.request = request;
 
     def get_users(self):
-        r = self.request.get('users')
-        return r.json()
+        r = self.request.get('/users')
+        return r
 
     def get_user(self,mail):
-        uri = 'user/' + mail
+        uri = '/user/' + mail
         r = self.request.get(uri)
-        if r.status_code == 404:
-            return 404
-        return r.json()
+        return r
 
     def register_user(self,email, public_key):
-        r = self.request.post('register_user',
+        r = self.request.post('/register_user',
             {
                 'mail' : email,
                 'public_key' : public_key
             });
-        return r.json();
+        return r;
 
     def send_message(self,message, to, aeskey):
         cipher_message = crypto.encryptString(message, aeskey);
-        r = self.request.post('forward_message',
+        r = self.request.post('/forward_message',
                           {
                               'to': to,
                               'message': cipher_message.hex()
                           });
         #print(r.status_code)
-        return r.json();
+        return r;
 
 def client_test():
-    client = Client(ClientRequest('http://127.0.0.1:5000/'));
+    client = Client(ClientRequest('http://127.0.0.1:5000'));
     print(client.get_users())
     aeskey = b'0123456789abcdef0123456789abcdef'
     #print(crypto.encryptString(b'asd', aeskey).hex());
@@ -74,3 +79,5 @@ def client_test():
     print(client.get_user('added_test@gmail.com'));
 
 #client_test()
+#HTTP codes -> 201 -> first created
+#HTTP codes -> 200 -> already created
