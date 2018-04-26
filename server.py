@@ -24,7 +24,6 @@ logged_in_users = [
         'mail': u'test@gmail.com',
         'sessionId' : 'asdasdas'
     }
-
 ]
 
 @app.route('/')
@@ -61,8 +60,9 @@ def login():
 def register_user():
     if not request.json :
         abort(400)
+    id = users[-1]['id'] + 1 if len(users) > 0 else 1
     user = {
-        'id': users[-1]['id'] + 1,
+        'id': id,
         'mail': request.json['mail'],
         'public_key': request.json['public_key']
     }

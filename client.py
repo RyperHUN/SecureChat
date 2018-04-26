@@ -79,6 +79,8 @@ class Client:
 
     def login(self, mail):
         r = self.request.postGet('/login', {'mail' : mail});
+        self.isLoggedIn = True
+        self.sessionId = r['sessionId'];
         return r;
 
 def client_test():
