@@ -1,6 +1,30 @@
 import requests
 import crypto_funcs as crypto
 
+class RequestApi:
+    def post(self,uri,data):
+        return
+    def get(self,uri,data):
+        return
+
+class TestRequest(RequestApi):
+    def __init__(self,flaskApp):
+        self.app = flaskApp;
+
+    def post(self,uri,data):
+        return
+    def get(self,uri,data):
+        return
+
+class ClientRequest(RequestApi):
+    def __init__(self, baseUri):
+        self.baseUri = baseUri;
+
+    def post(self,uri,data):
+        return
+    def get(self,uri,data):
+        return
+
 server_address = 'http://127.0.0.1:5000/'
 def get_users():
     r = requests.get(server_address + 'users')
