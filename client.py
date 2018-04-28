@@ -244,21 +244,24 @@ class RealClient():
         return self.isLoggedIn;
 
     def send_message(self,message, to):
-        r = self.client.send_message(message, to, self.sampleAESKEY);
-        #TODO Add saved mail,aes key pairs
-        return r;
+        if to in self.savedKeys.keys():
+            key = self.savedKeys[to];
+            r = self.client.send_message(message, to, key);
+            #TODO Add saved mail,aes key pairs
+            return r;
 
 
-    def getMessages(self):
-        messages = self.client.getMessage();
+    def saveExchangedKeys(self):
         isKeyExchange, key_exchange_request = self.client.receive_key_exchanges(self.sessionId);
         if isKeyExchange:
             for elem in key_exchange_request:
                 success, mail, key = self.client.key_exchange_handle(elem, self.mail)
                 if success:
-                    self.savedKeys[mail] = key;
+                    self.savedKeys[mail] = crypto.generateAES(key);
 
-
+    def getMessages(self):
+        messages = self.client.getMessage();
+        self.saveExchangedKeys();
         #TODO Save messages
         return messages;
 
