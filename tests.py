@@ -49,7 +49,7 @@ class FlaskTestCase(unittest.TestCase):
         self.assertEqual(len(server.users), 2)  # 'User logged in, has sessionId'
         self.assertEqual(len(server.logged_in_users), 2)  # 'User logged in, has sessionId'
 
-    def t_11_real_client_key_exchange(self):
+    def test_11_real_client_key_exchange(self):
         self.two_real_client_login_test();
         #Two clients logged in
         self.realClient.key_exchange_start(self.client2Mail);

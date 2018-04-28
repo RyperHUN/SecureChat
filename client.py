@@ -229,6 +229,7 @@ class RealClient():
         self.rsa_pub_key = self.rsa_key.publickey().exportKey(format='PEM').decode('ASCII');
         self.rsa_server_pub_key = crypto.import_key('server_pub_key.pem');
         self.isRegistered = False;
+        self.isLoggedIn = False;
         self.sampleAESKEY = b'0123456789abcdef0123456789abcdef'
         self.savedKeys = {};
         #TODO Need server_pub_key to exist!!!
