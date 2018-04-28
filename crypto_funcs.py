@@ -135,6 +135,7 @@ def hash(password):
     return SHA3_256.new(password)
 
 def generateAES(masterkey):
+    return SHA3_256.new(masterkey)
     #TODO SALT
     salt = ""
     return KDF.PBKDF2(masterkey,salt,32, 2000, SHA3_256)
