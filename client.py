@@ -1,6 +1,7 @@
 import requests
 import crypto_funcs as crypto
 import json
+import time
 
 class RequestApi:
     def post(self,uri,data):
@@ -38,7 +39,9 @@ class ClientRequest(RequestApi):
     def postGet(self,uri,data):
         r = requests.post(self.baseUri + uri, json=data)
         print(r)
-        return r.json();
+        if not r.json():
+            return []
+        return r.json()
 
     def get(self,uri):
         r = requests.get(self.baseUri + uri)
@@ -49,6 +52,7 @@ class ClientRequest(RequestApi):
 class Client:
     def __init__(self,request):
         self.request = request;
+        self.keys = {};
 
     def get_users(self):
         r = self.request.get('/users')
@@ -78,6 +82,7 @@ class Client:
         #print(r.status_code)
         return r;
 
+##########################################################
     # ha már van közös szimetrikus kulcs a receiverrel, kell közös kulcs a szerverrel is ha hmac-et használunk
     def crypto_after_DH_send_message(self, message, to, server_pub_rsa, aes_with_receiver, symetric_key_with_server):
         if to == "server":
@@ -118,30 +123,83 @@ class Client:
                                       'message': aes_message,
                                   });
         return req
+#############################################################
+    #message : prim + from
+    def send_key_exchange(self, A, to,fromMail, isInit):
+        #TODO Send normal SECRET request
+        self.request.post('/key_exchange_request',{
+            'isInit': isInit,
+            'to' : to,
+            'message' : {
+                'from' : fromMail,
+                'prim' : A
+            },
+            'macMessage' : 'test mac msg',
+            'macEgesz' : 'test msg'
+        })
 
-
-    def diffie_hellman(self, to):
-
+    def diffie_hellman_send(self, to, fromMail):
+        #TODO Need to be logged in to used because of sessionId
         #sender
         p = crypto.DHPrime
         g = crypto.DHGen
         x = crypto.randInt()
-        A = pow(g, x, p)
-        self.crypto_send_message(A, to, rsakey)
-        B = receive_respond_number()
-        K = pow(B, x, p)
 
+        #TODO Solve prime problem
+        #A = g**x % p
+        A = pow(g, x, p)
+        self.send_key_exchange(A, to,fromMail, True);
+        return x;
+
+    def diffie_hellman_send_finish(self, x, B):
+        p = crypto.DHPrime
+        K = x;
+        #TODO Solve prime problem
+        K = pow(B, x, p)
+        #K = B**x % p
+        return K;
+
+    def diffie_hellman_receive(self, number, toMail, fromMail):
         #receiver
-        A = receive_number()
-        frm = receive_sender()
+        A = number
+        frm = fromMail
         p = crypto.DHPrime
         g = crypto.DHGen
         y = crypto.randInt()
-        B =pow(g,y,p)
-        self.crypto_send_message(B, frm, rsakey)
-        K = pow(A, y, p)
 
-        return K
+        B = pow(g, y, p)
+        #TODO Solve prime
+        #B = g**y % p
+        self.send_key_exchange(B, toMail, fromMail, False);
+        K = pow(A, y, p)
+        return K;
+
+    def receive_key_exchanges(self, sessionId):
+        r = self.request.postGet('/key_exchange_get', {'sessionId' : sessionId});
+        #TODO Titkositas leszedese
+        if len(r) == 0:
+            return False, None
+        else :
+            return True, r;
+
+    def key_exchange_request(self,toMail, fromMail):
+        random = self.diffie_hellman_send(toMail,fromMail);
+        self.keys[toMail] = random;
+
+    def key_exchange_handle(self,key_exchange_request, myMail):
+        if not key_exchange_request or len(key_exchange_request) == 0:
+            return False, None, None
+
+        isInit = key_exchange_request['isInit'];
+        fromMail = key_exchange_request['message']['from'];
+        B = int(key_exchange_request['message']['prim']);
+        if not isInit:
+            random = self.keys[fromMail];
+            key = self.diffie_hellman_send_finish(random,B);
+            return True, fromMail, key
+        else :
+            key = self.diffie_hellman_receive(B, fromMail, myMail);
+            return True, fromMail, key
 
     def login(self, mail):
         r = self.request.postGet('/login', {'mail' : mail});
@@ -167,6 +225,7 @@ class RealClient():
         self.rsa_server_pub_key = crypto.import_key('server_pub_key.pem');
         self.isRegistered = False;
         self.sampleAESKEY = b'0123456789abcdef0123456789abcdef'
+        self.savedKeys = {};
         #TODO Need server_pub_key to exist!!!
 
     def register(self):
@@ -174,6 +233,9 @@ class RealClient():
         if r == 200 or r == 201:
             self.isRegistered = True;
         return self.isRegistered;
+
+    def key_exchange_start(self, toMail):
+        self.client.key_exchange_request(toMail, self.mail);
 
     def login(self):
         r = self.client.login(self.mail);
@@ -186,8 +248,17 @@ class RealClient():
         #TODO Add saved mail,aes key pairs
         return r;
 
+
     def getMessages(self):
         messages = self.client.getMessage();
+        isKeyExchange, key_exchange_request = self.client.receive_key_exchanges(self.sessionId);
+        if isKeyExchange:
+            for elem in key_exchange_request:
+                success, mail, key = self.client.key_exchange_handle(elem, self.mail)
+                if success:
+                    self.savedKeys[mail] = key;
+
+
         #TODO Save messages
         return messages;
 
@@ -250,6 +321,7 @@ class ClientControl:
             self.getMessage();
 
         elif splitted_command[0].upper() == "LOGOUT":
+            return;
             #TODO call logout function
 
         elif splitted_command[0].upper() == "SEND":

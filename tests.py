@@ -75,21 +75,30 @@ class FlaskTestCase(unittest.TestCase):
         success = realClient.login();
         self.assertTrue(success);
 
-    def test_10_real_client_test(self):
+    def two_real_client_login_test(self):
         self.realClient_login_register(self.realClient);
         self.realClient_login_register(self.realClient2);
         self.assertEqual(len(server.users), 2)  # 'User logged in, has sessionId'
         self.assertEqual(len(server.logged_in_users), 2)  # 'User logged in, has sessionId'
+
+    def test_10_real_client_test(self):
+        self.two_real_client_login_test();
         #Two clients logged in and registered
         self.realClient.send_message(b'Test message',self.client2Mail);
         self.assertEqual(len(server.saved_messages), 1);
         messages = self.realClient2.getMessages();
         self.assertEqual(len(messages), 1);
 
-
-
-
-
+    def test_11_real_client_key_exchange(self):
+        self.two_real_client_login_test();
+        #Two clients logged in
+        self.realClient.key_exchange_start(self.client2Mail);
+        self.realClient2.getMessages();
+        self.realClient.getMessages();
+        self.assertTrue(len(json.dumps(self.realClient2.savedKeys)) > 0);
+        self.assertTrue(len(json.dumps(self.realClient.savedKeys)) > 0);
+        print(self.realClient.savedKeys)
+        print(self.realClient2.savedKeys)
 
 
 if __name__ == '__main__':

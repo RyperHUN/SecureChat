@@ -34,6 +34,26 @@ saved_messages = [
     }
 ]
 
+key_exchange = [
+    {
+        'isInit' : True,
+        'to' : 'toEmail@gmail.com', #Server RSA
+        'message' : { #Client RSA
+            'prim' : 'asd',
+            'from' : 'from@gmail.com',
+        },
+        'macMessage' : 'TESTMAC',
+        'macEgesz' : 'MACTEST'
+    }
+]
+
+def authenticate_user(sessionId):
+    foundEmail = [elem for elem in logged_in_users if elem['sessionId'] == sessionId];
+    if len(foundEmail) == 1:
+        return True, foundEmail[0]['mail']
+    else :
+        return False, None
+
 server_key = 0;
 
 def init():
@@ -97,12 +117,39 @@ def forward_message():
     saved_messages.append(message);
     return jsonify(message);
 
+
+@app.route('/key_exchange_request', methods=['POST'])
+def key_exchange_post():
+    if not request.json :
+        abort(400)
+    # TODO Timestamp
+    message =     {
+        'isInit' : request.json['isInit'],
+        'to' : request.json['to'],
+        'message' : request.json['message'],
+        'macMessage' : request.json['macMessage'],
+        'macEgesz' : request.json['macEgesz']
+    }
+    key_exchange.append(message);
+    return jsonify(message);
+
+@app.route('/key_exchange_get', methods=['POST'])
+def key_exchange_get():
+    if not request.json :
+        abort(400)
+    sessionId = request.json['sessionId'];
+    success, foundEmail = authenticate_user(sessionId);
+    messages = [elem for elem in key_exchange if elem['to'] == foundEmail];
+    #TODO Remove this message
+    return jsonify(messages);
+
+
+
 @app.route('/get_messages', methods=['POST'])
 def get_messages():
     sessionId = request.json['sessionId']
     #Find email for sessin id
-    foundEmail = [elem for elem in logged_in_users if elem['sessionId'] == sessionId];
-    foundEmail = foundEmail[0]['mail']; #TODO Handle wrong sessionId
+    success, foundEmail = authenticate_user(sessionId)
     #Find messages for email
     messages = [elem for elem in saved_messages if elem['to'] == foundEmail];
     #TODO Remove these elements
