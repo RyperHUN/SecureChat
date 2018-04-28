@@ -109,24 +109,54 @@ def client_test():
 #HTTP codes -> 200 -> already created
 
 class ClientControl:
-    def client_Control:
+    def __init__(self, client):
+        self.request = client;
+
+    def login(self, mail):
+        self.request.login(mail)
+
+    def register_user(self, mail):
+        self.request.register_user(mail)
+
+    def getMessage(self):
+        self.request.getMessage()
+
+    def logout(self):
+        self.request.logout()
+
+    def send_message(self, message, to):
+        self.request.send_message(message, to)
+
+    def print_help(self):
+        print("Register:        register <e-mail>");
+        print("Login:           login <e-mail>");
+        print("Send message:    send <to_e-mail> <message>");
+        print("Logout:          logout");
+
+    def client_Control(self):
         command = input();
         splitted_command = command.split();
 
         if splitted_command[0].upper() == "LOGIN":
-             Client.login(splitted_command[1]);
+            self.login(splitted_command[1]);
 
         elif splitted_command[0].upper() == "REGISTER":
-             Client.register_user(splitted_command[1]);
+            self.register_user(splitted_command[1]);
 
         elif splitted_command[0].upper() == "GET":
-             Client.getMessage();
+            self.getMessage();
 
         elif splitted_command[0].upper() == "LOGOUT":
-        #    Client.logout();
+            #TODO
 
         elif splitted_command[0].upper() == "SEND":
-             Client.send_message(splitted_command[2], splitted_command[1]);
+            self.send_message(splitted_command[2], splitted_command[1]);
+
+        elif splitted_command[0].upper() == "HELP":
+            self.print_help();
 
         else:
             print("The command is not valid!");
+            self.print_help();
+
+
