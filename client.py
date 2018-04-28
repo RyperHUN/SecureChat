@@ -246,8 +246,7 @@ class RealClient():
 
     def send_message(self,message, to):
         if to in self.savedKeys.keys():
-            #key = self.savedKeys[to];
-            key = self.sampleAESKEY
+            key = self.savedKeys[to];
             r = self.client.send_message(message, to,self.mail, key);
             #TODO Add saved mail,aes key pairs
             return r;
@@ -266,7 +265,6 @@ class RealClient():
         mail = message['from'];
         if mail in self.savedKeys.keys():
             key = self.savedKeys[mail];
-            key = self.sampleAESKEY;
             decrypted = crypto.decryptString(message['message'],key);
             return decrypted;
 
