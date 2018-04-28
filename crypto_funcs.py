@@ -130,3 +130,6 @@ def test_mac():
 
 def randInt():
     return random.getrandbits(256)
+
+def hash(password):
+    return SHA3_256.new(password)

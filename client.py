@@ -107,7 +107,7 @@ class Client:
         g = crypto.DHGen
         x = crypto.randInt()
         A = g**x % p
-        self.crypto_send_message(A, to, rsakey, aeskey)
+        self.crypto_send_message(A, to, rsakey)
         B = receive_respond_number()
         K = B**x % p
 
@@ -118,7 +118,7 @@ class Client:
         g = crypto.DHGen
         y = crypto.randInt()
         B = g**y % p
-        self.crypto_send_message(B, frm, rsakey, aeskey)
+        self.crypto_send_message(B, frm, rsakey)
         K = A**y % p
 
         return K
