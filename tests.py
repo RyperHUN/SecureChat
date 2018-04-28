@@ -81,7 +81,11 @@ class FlaskTestCase(unittest.TestCase):
         self.assertEqual(len(server.users), 2)  # 'User logged in, has sessionId'
         self.assertEqual(len(server.logged_in_users), 2)  # 'User logged in, has sessionId'
         #Two clients logged in and registered
-        
+        self.realClient.send_message(b'Test message',self.client2Mail);
+        self.assertEqual(len(server.saved_messages), 1);
+        messages = self.realClient2.getMessages();
+        self.assertEqual(len(messages), 1);
+
 
 
 

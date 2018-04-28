@@ -105,6 +105,7 @@ def get_messages():
     foundEmail = foundEmail[0]['mail']; #TODO Handle wrong sessionId
     #Find messages for email
     messages = [elem for elem in saved_messages if elem['to'] == foundEmail];
+    #TODO Remove these elements
     return jsonify(messages);
 
 if __name__ == '__main__':

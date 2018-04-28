@@ -67,6 +67,7 @@ class Client:
             });
         return r;
 
+    #TODO Add from parameter
     def send_message(self,message, to, aeskey):
         cipher_message = crypto.encryptString(message, aeskey);
         r = self.request.post('/forward_message',
@@ -145,6 +146,7 @@ class RealClient():
         self.rsa_pub_key = self.rsa_key.publickey().exportKey(format='PEM').decode('ASCII');
         self.rsa_server_pub_key = crypto.import_key('server_pub_key.pem');
         self.isRegistered = False;
+        self.sampleAESKEY = b'0123456789abcdef0123456789abcdef'
         #TODO Need server_pub_key to exist!!!
 
     def register(self):
@@ -160,13 +162,14 @@ class RealClient():
         return self.isLoggedIn;
 
     def send_message(self,message, to):
-        return;
+        r = self.client.send_message(message, to, self.sampleAESKEY);
         #TODO Add saved mail,aes key pairs
-        #return r;
+        return r;
 
     def getMessages(self):
         messages = self.client.getMessage();
         #TODO Save messages
+        return messages;
 
 
 
