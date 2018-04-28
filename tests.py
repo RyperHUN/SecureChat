@@ -58,14 +58,13 @@ class FlaskTestCase(unittest.TestCase):
         self.realClient.getMessages();
         self.assertTrue(len((self.realClient2.savedKeys)) > 0);
         self.assertTrue(len((self.realClient.savedKeys)) > 0);
-        #print(self.realClient.savedKeys)
-        #print(self.realClient2.savedKeys)
-        self.realClient.send_message(b'Test message',self.client2Mail);
-        print(json.dumps(self.testRequest.get('/get_all'),indent=4))
+        self.assertTrue(self.realClient.savedKeys[self.client2Mail] == self.realClient2.savedKeys[self.client1Mail]);
+        self.realClient.send_message(self.testMessage,self.client2Mail);
+        #print(json.dumps(self.testRequest.get('/get_all'),indent=4))
         self.assertEqual(len(server.saved_messages), 1);
         messages = self.realClient2.getMessages();
         self.assertEqual(len(messages), 1);
-        print(messages)
+        self.assertEqual(messages[0],self.testMessage.decode('utf-8'))
 
     def test_12_login_test(self):
         self.assertFalse(self.realClient.login());

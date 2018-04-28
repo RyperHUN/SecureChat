@@ -147,7 +147,9 @@ def key_exchange_get():
     sessionId = request.json['sessionId'];
     success, foundEmail = authenticate_user(sessionId);
     messages = [elem for elem in key_exchange if elem['to'] == foundEmail];
-    #TODO Remove this message
+    for logged in key_exchange:
+        if logged['to'] == foundEmail:
+            key_exchange.remove(logged);
     return jsonify(messages);
 
 
