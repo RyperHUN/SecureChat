@@ -1,6 +1,7 @@
 #!flask/bin/python
 from flask import Flask, jsonify, request,abort
 import uuid
+import crypto_funcs as crypto
 
 app = Flask(__name__)
 
@@ -32,6 +33,13 @@ saved_messages = [
         'message' : 'CipherMessageInHex'
     }
 ]
+
+server_key = 0;
+
+def init():
+    key = crypto.get_rsa_key();
+    crypto.save_rsa_key(key, 'server');
+    return key;
 
 @app.route('/')
 def index():
@@ -100,4 +108,5 @@ def get_messages():
     return jsonify(messages);
 
 if __name__ == '__main__':
+    server_key = init();
     app.run(debug=True)

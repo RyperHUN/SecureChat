@@ -77,6 +77,28 @@ class Client:
         #print(r.status_code)
         return r;
 
+    def crypto_send_message(self, message, to, rsakey, aeskey):
+        if to == "server":
+            rsa_message = crypto.encrypt_RSA(message, rsakey)
+            hmac = crypto.generate_HMAC(rsa_message, rsakey)
+            req = self.request.post('/forward_message',
+                                              {
+                                                  'message': rsa_message,
+                                                  'mac': hmac
+                                              });
+        else:
+            aes_message = crypto.encryptString(message, aeskey)
+            to_rsa = crypto.encrypt_RSA(to, rsakey)
+            pair = [to_rsa, aes_message]
+            hmac = crypto.generate_HMAC(pair, rsakey)
+            req = self.request.post('/forward_message',
+                                  {
+                                      'to': to_rsa,
+                                      'message': aes_message,
+                                      'mac': hmac
+                                  });
+        return req
+
     def login(self, mail):
         r = self.request.postGet('/login', {'mail' : mail});
         self.isLoggedIn = True
@@ -91,6 +113,40 @@ class Client:
             encryptedMessages.append(elem['message']);
         return encryptedMessages;
 
+
+class RealClient():
+    def __init__(self, client, rsa_key, mail):
+        self.client = client;
+        self.rsa_key = rsa_key;
+        self.mail = mail;
+        self.rsa_pub_key = self.rsa_key.publickey().exportKey(format='PEM').decode('ASCII');
+        self.rsa_server_pub_key = crypto.import_key('server_pub_key.pem');
+        self.isRegistered = False;
+        #TODO Need server_pub_key to exist!!!
+
+    def register(self):
+        r = self.client.register_user(self.mail, self.rsa_pub_key);
+        if r == 200 or r == 201:
+            self.isRegistered = True;
+        return self.isRegistered;
+
+    def login(self):
+        r = self.client.login(self.mail);
+        self.isLoggedIn = True
+        self.sessionId = r['sessionId'];
+        return self.isLoggedIn;
+
+    def send_message(self,message, to):
+        return;
+        #TODO Add saved mail,aes key pairs
+        #return r;
+
+    def getMessages(self):
+        messages = self.client.getMessage();
+        #TODO Save messages
+
+
+
 def client_test():
     client = Client(ClientRequest('http://127.0.0.1:5000'));
     print(client.get_users())
@@ -104,6 +160,7 @@ def client_test():
 
     print(client.get_user('added_test@gmail.com'));
     print(client.login('added_test@gmail.com'))
+
 #client_test()
 #HTTP codes -> 201 -> first created
 #HTTP codes -> 200 -> already created
@@ -147,7 +204,7 @@ class ClientControl:
             self.getMessage();
 
         elif splitted_command[0].upper() == "LOGOUT":
-            #TODO
+            #TODO call logout function
 
         elif splitted_command[0].upper() == "SEND":
             self.send_message(splitted_command[2], splitted_command[1]);
@@ -158,5 +215,3 @@ class ClientControl:
         else:
             print("The command is not valid!");
             self.print_help();
-
-

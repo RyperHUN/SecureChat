@@ -69,6 +69,22 @@ def test_rsa():
     plainText_RSA = decrypt_RSA(cipherText_RSA, RSA_key);
     print(plainText_RSA)
 
+def save_rsa_key(key, name):
+    ofile = open(name + '_rsa_key.pem', 'w');
+    ofile.write(key.exportKey(format='PEM').decode('ASCII'));
+    ofile.close();
+    ofile = open(name + '_pub_key.pem', 'w');
+    ofile.write(key.publickey().exportKey(format='PEM').decode('ASCII'));
+    ofile.close();
+
+def import_key(name):
+    kfile = open(name, 'r')
+    pubkeystr = kfile.read()
+    kfile.close()
+
+    pubkey = RSA.import_key(pubkeystr)
+    return pubkey;
+
 
 # ------Signing-------
 
@@ -96,8 +112,6 @@ def generate_HMAC(message, key):
     hmac = HMAC.new(key, digestmod=SHA)
     hmac.update(message)
     return hmac
-
-
 
 def check_HMAC(message, key, expected_hmac):
     hmac = HMAC.new(key, digestmod=SHA)
