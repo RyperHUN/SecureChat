@@ -78,20 +78,21 @@ class Client:
         #print(r.status_code)
         return r;
 
-    def crypto_send_message(self, message, to, rsakey, aeskey):
+    # ha már van közös szimetrikus kulcs a receiverrel, kell közös kulcs a szerverrel is ha hmac-et használunk
+    def crypto_after_DH_send_message(self, message, to, server_pub_rsa, aes_with_receiver, symetric_key_with_server):
         if to == "server":
-            rsa_message = crypto.encrypt_RSA(message, rsakey)
-            hmac = crypto.generate_HMAC(rsa_message, aeskey)
+            rsa_message = crypto.encrypt_RSA(message, server_pub_rsa)
+            hmac = crypto.generate_HMAC(rsa_message, symetric_key_with_server)
             req = self.request.post('/forward_message',
                                               {
                                                   'message': rsa_message,
                                                   'mac': hmac
                                               });
         else:
-            aes_message = crypto.encryptString(message, aeskey)
-            to_rsa = crypto.encrypt_RSA(to, rsakey)
+            aes_message = crypto.encryptString(message, aes_with_receiver)
+            to_rsa = crypto.encrypt_RSA(to, server_pub_rsa)
             pair = [to_rsa, aes_message]
-            hmac = crypto.generate_HMAC(pair, aeskey)
+            hmac = crypto.generate_HMAC(pair, aes_with_receiver)
             req = self.request.post('/forward_message',
                                   {
                                       'to': to_rsa,
@@ -100,16 +101,35 @@ class Client:
                                   });
         return req
 
+    # ha még nincsen közösen megegyezett kulcs
+    def crypto_before_DH_send_message(self, message, to, server_pub_rsa,  aes_with_receiver, receiver_pub_rsa):
+        if to == "server":
+            rsa_message = crypto.encrypt_RSA(message, server_pub_rsa)
+            req = self.request.post('/forward_message',
+                                              {
+                                                  'message': rsa_message,
+                                              });
+        else:
+            aes_message = crypto.encryptString(message, aes_with_receiver)
+            to_rsa = crypto.encrypt_RSA(to, server_pub_rsa)
+            req = self.request.post('/forward_message',
+                                  {
+                                      'to': to_rsa,
+                                      'message': aes_message,
+                                  });
+        return req
+
+
     def diffie_hellman(self, to):
 
         #sender
         p = crypto.DHPrime
         g = crypto.DHGen
         x = crypto.randInt()
-        A = g**x % p
+        A = pow(g, x, p)
         self.crypto_send_message(A, to, rsakey)
         B = receive_respond_number()
-        K = B**x % p
+        K = pow(B, x, p)
 
         #receiver
         A = receive_number()
@@ -117,9 +137,9 @@ class Client:
         p = crypto.DHPrime
         g = crypto.DHGen
         y = crypto.randInt()
-        B = g**y % p
+        B =pow(g,y,p)
         self.crypto_send_message(B, frm, rsakey)
-        K = A**y % p
+        K = pow(A, y, p)
 
         return K
 
