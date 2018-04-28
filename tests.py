@@ -70,6 +70,9 @@ class FlaskTestCase(unittest.TestCase):
         #Login not succesful
         self.realClient.register();
         self.assertTrue(self.realClient.login())
+        self.assertEqual(len(server.logged_in_users), 1);
+        self.assertTrue(self.realClient.login())
+        self.assertEqual(len(server.logged_in_users), 1);
 
 
 

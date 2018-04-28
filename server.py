@@ -24,7 +24,7 @@ logged_in_users = [
 
 saved_messages = [
     {
-        'to' : 'toEmail@gmail.com',
+        'to' : 'test@gmail.com',
         'from' : 'sender@gmail.com',
         'message' : 'CipherMessageInHex'
     }
@@ -82,6 +82,10 @@ def login():
     user = [user for user in users if user['mail'] == mail]
     if len(user) == 0:
         abort(404)
+
+    for logged in logged_in_users:
+        if logged['mail'] == mail:
+            logged_in_users.remove(logged);
     sessionId = str(uuid.uuid1());
     #TODO Find in registered users
     loggedInObj = {

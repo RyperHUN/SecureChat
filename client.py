@@ -341,12 +341,10 @@ class ClientControl:
         splitted_command = command.split();
 
         if splitted_command[0].upper() == "GET":
-            self.getMessage();
-
+            self.getMessage()
         elif splitted_command[0].upper() == "LOGOUT":
-            return;
+            return True;
             #TODO call logout function
-
         elif splitted_command[0].upper() == "SEND":
             self.send_message(splitted_command[2], splitted_command[1]);
 
@@ -357,9 +355,11 @@ class ClientControl:
             print("The command is not valid!");
             self.print_help();
 
+        return False;
+
     def input_loop(self):
         isQuit = self.client_Control()
-        while isQuit:
+        while not isQuit:
             isQuit = self.client_Control();
 
 #TODO Normal API
@@ -375,4 +375,4 @@ def test_client_control():
     clientControl.print_help();
     clientControl.input_loop();
 
-test_client_control();
+#test_client_control();
