@@ -52,7 +52,7 @@ def login():
         abort(400)
     mail = request.json['mail'];
     user = get_user(mail); #TODO find mail
-    sessionId = uuid.uuid1();
+    sessionId = str(uuid.uuid1());
     #TODO Find in registered users
     loggedInObj = {
         'id' : 1,
@@ -88,6 +88,16 @@ def forward_message():
     }
     saved_messages.append(message);
     return jsonify(message);
+
+@app.route('/get_messages', methods=['POST'])
+def get_messages():
+    sessionId = request.json['sessionId']
+    #Find email for sessin id
+    foundEmail = [elem for elem in logged_in_users if elem['sessionId'] == sessionId];
+    foundEmail = foundEmail[0]['mail']; #TODO Handle wrong sessionId
+    #Find messages for email
+    messages = [elem for elem in saved_messages if elem['to'] == foundEmail];
+    return jsonify(messages);
 
 if __name__ == '__main__':
     app.run(debug=True)

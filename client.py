@@ -72,7 +72,7 @@ class Client:
         r = self.request.post('/forward_message',
                           {
                               'to': to,
-                              'message': cipher_message.hex()
+                              'message': cipher_message
                           });
         #print(r.status_code)
         return r;
@@ -82,6 +82,14 @@ class Client:
         self.isLoggedIn = True
         self.sessionId = r['sessionId'];
         return r;
+
+    def getMessage(self):
+        assert self.isLoggedIn;
+        messages = self.request.postGet('/get_messages', {'sessionId': self.sessionId});
+        encryptedMessages = []
+        for elem in messages:
+            encryptedMessages.append(elem['message']);
+        return encryptedMessages;
 
 def client_test():
     client = Client(ClientRequest('http://127.0.0.1:5000'));

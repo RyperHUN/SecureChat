@@ -6,6 +6,7 @@ from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Signature import pss
 from Crypto.Hash import SHA3_256
 from Crypto.Hash import HMAC, SHA
+import binascii
 
 def encryptString(plaintext, key):
     # Encryption#
@@ -15,10 +16,11 @@ def encryptString(plaintext, key):
     cipher = AES.new(key, AES.MODE_CBC, iv)
 
     ciphertext = cipher.encrypt(plaintext);
-    return iv + ciphertext;
+    return (iv + ciphertext).hex();
 
 
-def decryptString(ciphertext, key):
+def decryptString(ciphertextHex, key):
+    ciphertext = binascii.unhexlify(ciphertextHex)
     iv = ciphertext[:AES.block_size]
     ciphertext = ciphertext[AES.block_size:]
 
@@ -32,7 +34,7 @@ def decryptString(ciphertext, key):
 def test_AES():
     key = b'0123456789abcdef0123456789abcdef'
     cipherText = encryptString(b"alma a fa alatt", key);
-    print(cipherText.hex());
+    print(cipherText);
     print(decryptString(cipherText,key));
 
 
