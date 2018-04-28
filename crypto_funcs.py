@@ -97,8 +97,6 @@ def generate_HMAC(message, key):
     hmac.update(message)
     return hmac
 
-
-
 def check_HMAC(message, key, expected_hmac):
     hmac = HMAC.new(key, digestmod=SHA)
     hmac.update(message)

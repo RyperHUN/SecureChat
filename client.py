@@ -77,6 +77,28 @@ class Client:
         #print(r.status_code)
         return r;
 
+    def crypto_send_message(self, message, to, rsakey, aeskey):
+        if to == "server":
+            rsa_message = crypto.encrypt_RSA(message, rsakey)
+            hmac = crypto.generate_HMAC(rsa_message, rsakey)
+            req = self.request.post('/forward_message',
+                                              {
+                                                  'message': rsa_message,
+                                                  'mac': hmac
+                                              });
+        else:
+            aes_message = crypto.encryptString(message, aeskey)
+            to_rsa = crypto.encrypt_RSA(to, rsakey)
+            pair = [to_rsa, aes_message]
+            hmac = crypto.generate_HMAC(pair, rsakey)
+            req = self.request.post('/forward_message',
+                                  {
+                                      'to': to_rsa,
+                                      'message': aes_message,
+                                      'mac': hmac
+                                  });
+        return req
+
     def login(self, mail):
         r = self.request.postGet('/login', {'mail' : mail});
         self.isLoggedIn = True
@@ -123,7 +145,7 @@ class ClientControl:
              Client.getMessage();
 
         elif splitted_command[0].upper() == "LOGOUT":
-        #    Client.logout();
+            #   Client.logout();
 
         elif splitted_command[0].upper() == "SEND":
              Client.send_message(splitted_command[2], splitted_command[1]);
