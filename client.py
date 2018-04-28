@@ -113,6 +113,36 @@ class Client:
             encryptedMessages.append(elem['message']);
         return encryptedMessages;
 
+
+class RealClient():
+    def __init__(self, client, rsa_key, mail):
+        self.client = client;
+        self.rsa_key = rsa_key;
+        self.mail = mail;
+        self.rsa_pub_key = self.rsa_key.publickey().exportKey(format='PEM').decode('ASCII');
+
+    def register(self):
+        r = self.client.register_user(self.mail, self.rsa_pub_key);
+        if r == 200 or r == 201:
+            self.isRegistered = True;
+
+    def send_message(self,message, to):
+        return;
+        #TODO Add saved mail,aes key pairs
+        #return r;
+
+    def login(self):
+        r = self.client.login(self.mail);
+        self.isLoggedIn = True
+        self.sessionId = r['sessionId'];
+        return r;
+
+    def getMessages(self):
+        messages = self.client.getMessage();
+        #TODO Save messages
+
+
+
 def client_test():
     client = Client(ClientRequest('http://127.0.0.1:5000'));
     print(client.get_users())
@@ -131,7 +161,7 @@ def client_test():
 #HTTP codes -> 200 -> already created
 
 class ClientControl:
-    def client_Control:
+    def client_Control(self):
         command = input();
         splitted_command = command.split();
 
@@ -145,10 +175,11 @@ class ClientControl:
              Client.getMessage();
 
         elif splitted_command[0].upper() == "LOGOUT":
-            #   Client.logout();
+             Client.logout();
 
         elif splitted_command[0].upper() == "SEND":
              Client.send_message(splitted_command[2], splitted_command[1]);
 
         else:
             print("The command is not valid!");
+

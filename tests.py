@@ -11,6 +11,7 @@ import crypto_funcs as crypto
 
 class FlaskTestCase(unittest.TestCase):
     def setUp(self):
+        server.init();
         self.flaskapp = server.app;
         self.app = self.flaskapp.test_client();
         self.flaskapp.config['TESTING'] = True
