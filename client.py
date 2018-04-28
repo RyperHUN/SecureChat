@@ -22,6 +22,8 @@ class TestRequest(RequestApi):
     def postGet(self,uri,data):
         r = self.app.post(uri, content_type='application/json',
                           data=json.dumps(data));
+        if r.status_code == 404:
+            return {}
         return json.loads(r.data);
     def get(self,uri):
         r = self.app.get(uri)
@@ -38,9 +40,8 @@ class ClientRequest(RequestApi):
 
     def postGet(self,uri,data):
         r = requests.post(self.baseUri + uri, json=data)
-        print(r)
-        if not r.json():
-            return []
+        if r.status_code == 404:
+            return {}
         return r.json()
 
     def get(self,uri):
@@ -204,9 +205,12 @@ class Client:
 
     def login(self, mail):
         r = self.request.postGet('/login', {'mail' : mail});
-        self.isLoggedIn = True
-        self.sessionId = r['sessionId'];
-        return r;
+        self.isLoggedIn = r != {};
+        if not self.isLoggedIn:
+            return False, None
+
+        self.sessionId = r['sessionId']
+        return self.isLoggedIn, r['sessionId'];
 
     def getMessage(self):
         assert self.isLoggedIn;
@@ -230,21 +234,25 @@ class RealClient():
         #TODO Need server_pub_key to exist!!!
 
     def register(self):
+        assert not self.isLoggedIn
         r = self.client.register_user(self.mail, self.rsa_pub_key);
         if r == 200 or r == 201:
             self.isRegistered = True;
         return self.isRegistered;
 
     def key_exchange_start(self, toMail):
+        assert self.isLoggedIn
         self.client.key_exchange_request(toMail, self.mail);
 
     def login(self):
-        r = self.client.login(self.mail);
-        self.isLoggedIn = True
-        self.sessionId = r['sessionId'];
+        success, sessionId = self.client.login(self.mail);
+        self.isLoggedIn = success
+        self.sessionId = sessionId;
+        self.isRegistered = self.isLoggedIn or self.isRegistered;
         return self.isLoggedIn;
 
     def send_message(self,message, to):
+        assert self.isLoggedIn
         if to in self.savedKeys.keys():
             key = self.savedKeys[to];
             r = self.client.send_message(message, to,self.mail, key);
@@ -272,6 +280,8 @@ class RealClient():
 
 
     def getMessages(self):
+        assert self.isLoggedIn
+
         messages = self.client.getMessage();
         self.saveExchangedKeys();
 
@@ -302,40 +312,35 @@ def client_test():
 
 class ClientControl:
     def __init__(self, client):
-        self.request = client;
+        self.client = client;
 
     def login(self, mail):
-        self.request.login(mail)
+        self.client.login(mail)
 
     def register_user(self, mail):
-        self.request.register_user(mail)
+        self.client.register_user(mail)
 
     def getMessage(self):
-        self.request.getMessage()
+        print(self.client.getMessages());
 
     def logout(self):
-        self.request.logout()
+        self.client.logout()
 
     def send_message(self, message, to):
-        self.request.send_message(message, to)
+        self.client.send_message(message, to)
 
     def print_help(self):
         print("Register:        register <e-mail>");
         print("Login:           login <e-mail>");
         print("Send message:    send <to_e-mail> <message>");
+        print("Get              get messages")
         print("Logout:          logout");
 
     def client_Control(self):
         command = input();
         splitted_command = command.split();
 
-        if splitted_command[0].upper() == "LOGIN":
-            self.login(splitted_command[1]);
-
-        elif splitted_command[0].upper() == "REGISTER":
-            self.register_user(splitted_command[1]);
-
-        elif splitted_command[0].upper() == "GET":
+        if splitted_command[0].upper() == "GET":
             self.getMessage();
 
         elif splitted_command[0].upper() == "LOGOUT":
@@ -351,3 +356,23 @@ class ClientControl:
         else:
             print("The command is not valid!");
             self.print_help();
+
+    def input_loop(self):
+        isQuit = self.client_Control()
+        while isQuit:
+            isQuit = self.client_Control();
+
+#TODO Normal API
+def test_client_control():
+    print('Enter <mail> to log in');
+    mail = input();
+    realClient = RealClient(Client(ClientRequest('http://127.0.0.1:5000')), crypto.get_rsa_key(), mail);
+    if not realClient.login():
+        realClient.register();
+        realClient.login();
+    print('Login succesful, session ID:' , realClient.sessionId);
+    clientControl = ClientControl(realClient);
+    clientControl.print_help();
+    clientControl.input_loop();
+
+test_client_control();

@@ -37,38 +37,6 @@ class FlaskTestCase(unittest.TestCase):
     def login_size_test(self,num):
         self.assertEqual(len(server.logged_in_users), num)
 
-    def test_00_start_test(self):
-        self.user_size_test(0);
-
-    def test_01_register(self):
-        key = 'testkey1234'
-        mail = 'added_mail@gmail.com'
-        r = self.client.register_user(mail, key)
-
-        #Valid answer
-        self.assertEqual(True, 200 <= r and r <= 201);
-        self.user_size_test(1)
-
-    def test_02_send_message(self):
-        r = self.client.send_message(self.testMessage,'added_mail@gmail.com','from@gmail.com',self.aeskey);
-        self.assertEqual(True, 200 <= r and r <= 201);
-        self.assertEqual(len(server.saved_messages), 1);
-
-    #Testing login + getMessage functionality
-    def test_03_login_test(self):
-        self.test_02_send_message();
-        self.login_size_test(0);
-        r = self.client.login('added_mail@gmail.com');
-
-        self.assertTrue(self.client.isLoggedIn);
-        self.assertIn('sessionId', r);
-        self.login_size_test(1);
-        messages = self.client.getMessage();
-        self.assertEqual(len(messages),1);
-        message = messages[0]['message'];
-        message = crypto.decryptString(message, self.aeskey)
-        self.assertEqual(message, self.testMessage.decode('UTF-8'));
-
     def realClient_login_register(self,realClient):
         success = realClient.register();
         self.assertTrue(success);
@@ -81,15 +49,7 @@ class FlaskTestCase(unittest.TestCase):
         self.assertEqual(len(server.users), 2)  # 'User logged in, has sessionId'
         self.assertEqual(len(server.logged_in_users), 2)  # 'User logged in, has sessionId'
 
-    def test_10_real_client_test(self):
-        self.two_real_client_login_test();
-        #Two clients logged in and registered
-        #self.realClient.send_message(b'Test message',self.client2Mail);
-        #self.assertEqual(len(server.saved_messages), 1);
-        #messages = self.realClient2.getMessages();
-        #self.assertEqual(len(messages), 1);
-
-    def test_11_real_client_key_exchange(self):
+    def t_11_real_client_key_exchange(self):
         self.two_real_client_login_test();
         #Two clients logged in
         self.realClient.key_exchange_start(self.client2Mail);
@@ -104,6 +64,13 @@ class FlaskTestCase(unittest.TestCase):
         messages = self.realClient2.getMessages();
         self.assertEqual(len(messages), 1);
         print(messages)
+
+    def test_12_login_test(self):
+        self.assertFalse(self.realClient.login());
+        #Login not succesful
+        self.realClient.register();
+        self.assertTrue(self.realClient.login())
+
 
 
 if __name__ == '__main__':

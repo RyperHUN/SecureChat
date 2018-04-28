@@ -61,6 +61,10 @@ def init():
 def index():
     return "Hello, World!"
 
+@app.route('/get_all')
+def get_all():
+    return jsonify({'users': users, 'loggedIn':logged_in_users, 'saved_messages' :saved_messages, 'key_exchange': key_exchange});
+
 @app.route('/users')
 def get_users():
     return jsonify({'users':users});
@@ -75,7 +79,9 @@ def login():
     if not request.json :
         abort(400)
     mail = request.json['mail'];
-    user = get_user(mail); #TODO find mail
+    user = [user for user in users if user['mail'] == mail]
+    if len(user) == 0:
+        abort(404)
     sessionId = str(uuid.uuid1());
     #TODO Find in registered users
     loggedInObj = {
