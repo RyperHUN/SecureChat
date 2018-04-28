@@ -50,7 +50,7 @@ class FlaskTestCase(unittest.TestCase):
         self.user_size_test(1)
 
     def test_02_send_message(self):
-        r = self.client.send_message(self.testMessage,'added_mail@gmail.com',self.aeskey);
+        r = self.client.send_message(self.testMessage,'added_mail@gmail.com','from@gmail.com',self.aeskey);
         self.assertEqual(True, 200 <= r and r <= 201);
         self.assertEqual(len(server.saved_messages), 1);
 
@@ -65,7 +65,7 @@ class FlaskTestCase(unittest.TestCase):
         self.login_size_test(1);
         messages = self.client.getMessage();
         self.assertEqual(len(messages),1);
-        message = messages[0];
+        message = messages[0]['message'];
         message = crypto.decryptString(message, self.aeskey)
         self.assertEqual(message, self.testMessage.decode('UTF-8'));
 
@@ -97,9 +97,13 @@ class FlaskTestCase(unittest.TestCase):
         self.realClient.getMessages();
         self.assertTrue(len(json.dumps(self.realClient2.savedKeys)) > 0);
         self.assertTrue(len(json.dumps(self.realClient.savedKeys)) > 0);
-        print(self.realClient.savedKeys)
-        print(self.realClient2.savedKeys)
-        #self.realClient.send_message(self.testMessage,)
+        #print(self.realClient.savedKeys)
+        #print(self.realClient2.savedKeys)
+        self.realClient.send_message(b'Test message',self.client2Mail);
+        self.assertEqual(len(server.saved_messages), 1);
+        messages = self.realClient2.getMessages();
+        self.assertEqual(len(messages), 1);
+        print(messages)
 
 
 if __name__ == '__main__':

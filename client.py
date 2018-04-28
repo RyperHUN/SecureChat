@@ -72,11 +72,12 @@ class Client:
         return r;
 
     #TODO Add from parameter
-    def send_message(self,message, to, aeskey):
+    def send_message(self,message, to,fromMail, aeskey):
         cipher_message = crypto.encryptString(message, aeskey);
         r = self.request.post('/forward_message',
                           {
                               'to': to,
+                              'from' : fromMail,
                               'message': cipher_message
                           });
         #print(r.status_code)
@@ -212,7 +213,7 @@ class Client:
         messages = self.request.postGet('/get_messages', {'sessionId': self.sessionId});
         encryptedMessages = []
         for elem in messages:
-            encryptedMessages.append(elem['message']);
+            encryptedMessages.append({'from': elem['from'], 'message':elem['message']});
         return encryptedMessages;
 
 
@@ -245,8 +246,9 @@ class RealClient():
 
     def send_message(self,message, to):
         if to in self.savedKeys.keys():
-            key = self.savedKeys[to];
-            r = self.client.send_message(message, to, key);
+            #key = self.savedKeys[to];
+            key = self.sampleAESKEY
+            r = self.client.send_message(message, to,self.mail, key);
             #TODO Add saved mail,aes key pairs
             return r;
 
@@ -259,9 +261,24 @@ class RealClient():
                 if success:
                     self.savedKeys[mail] = crypto.generateAES(str(key).encode("utf-8"));
 
+
+    def decryptMessage(self,message):
+        mail = message['from'];
+        if mail in self.savedKeys.keys():
+            key = self.savedKeys[mail];
+            key = self.sampleAESKEY;
+            decrypted = crypto.decryptString(message['message'],key);
+            return decrypted;
+
+        return message['message'];
+
+
     def getMessages(self):
         messages = self.client.getMessage();
         self.saveExchangedKeys();
+
+        for i in range(0, len(messages)):
+            messages[i] = self.decryptMessage(messages[i]);
         #TODO Save messages
         return messages;
 

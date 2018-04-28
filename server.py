@@ -11,11 +11,6 @@ users = [
         'id': 1,
         'mail': u'test@gmail.com',
         'public_key': u'testpublicKey12312asdasdfw3',
-    },
-    {
-        'id': 2,
-        'mail': u'test2@gmail.com',
-        'public_key': u'testpublicKey1234876123948ksf',
     }
 ]
 
@@ -30,6 +25,7 @@ logged_in_users = [
 saved_messages = [
     {
         'to' : 'toEmail@gmail.com',
+        'from' : 'sender@gmail.com',
         'message' : 'CipherMessageInHex'
     }
 ]
@@ -112,6 +108,7 @@ def forward_message():
     # TODO Timestamp
     message = {
         'to': request.json['to'],
+        'from': request.json['from'],
         'message': request.json['message']
     }
     saved_messages.append(message);
