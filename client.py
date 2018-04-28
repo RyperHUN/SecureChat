@@ -99,6 +99,29 @@ class Client:
                                   });
         return req
 
+    def diffie_hellman(self, to):
+
+        #sender
+        p = crypto.DHPrime
+        g = crypto.DHGen
+        x = crypto.randInt()
+        A = g**x % p
+        self.crypto_send_message(A, to, rsakey, aeskey)
+        B = receive_respond_number()
+        K = B**x % p
+
+        #receiver
+        A = receive_number()
+        frm = receive_sender()
+        p = crypto.DHPrime
+        g = crypto.DHGen
+        y = crypto.randInt()
+        B = g**y % p
+        self.crypto_send_message(B, frm, rsakey, aeskey)
+        K = A**y % p
+
+        return K
+
     def login(self, mail):
         r = self.request.postGet('/login', {'mail' : mail});
         self.isLoggedIn = True
