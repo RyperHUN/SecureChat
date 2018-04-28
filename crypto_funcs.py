@@ -106,7 +106,7 @@ def validateSigniture(message, pub_rsa_key, signature):
 def generate_HMAC(message, key):
     hmac = HMAC.new(key, digestmod=SHA3_256)
     hmac.update(message)
-    return hmac
+    return hmac.hexdigest()
 
 def check_HMAC(message, key, expected_hmac):
     hmac = HMAC.new(key, digestmod=SHA3_256)
@@ -132,10 +132,7 @@ def randInt():
     return random.getrandbits(256)
 
 def hash(password):
-    return SHA3_256.new(password)
+    return SHA3_256.new(password).hexdigest()
 
 def generateAES(masterkey):
-    return SHA3_256.new(masterkey)
-    #TODO SALT
-    salt = ""
-    return KDF.PBKDF2(masterkey,salt,32, 2000, SHA3_256)
+    return SHA3_256.new(masterkey).hexdigest()

@@ -257,7 +257,7 @@ class RealClient():
             for elem in key_exchange_request:
                 success, mail, key = self.client.key_exchange_handle(elem, self.mail)
                 if success:
-                    self.savedKeys[mail] = crypto.generateAES(key);
+                    self.savedKeys[mail] = crypto.generateAES(str(key).encode("utf-8"));
 
     def getMessages(self):
         messages = self.client.getMessage();
