@@ -15,6 +15,7 @@ class FlaskTestCase(unittest.TestCase):
         self.aeskey = b'0123456789abcdef0123456789abcdef'
         server.users.clear();
         server.logged_in_users.clear();
+        server.saved_messages.clear();
 
     def user_size_test(self, num):
         jsonAnswer = self.client.get_users();
@@ -40,6 +41,7 @@ class FlaskTestCase(unittest.TestCase):
     def test_02_send_message(self):
         r = self.client.send_message(b'test message','added_mail@gmail.com',self.aeskey);
         self.assertEqual(True, 200 <= r and r <= 201);
+        self.assertEqual(len(server.saved_messages), 1);
 
     def test_03_login_test(self):
         self.login_size_test(0);

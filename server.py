@@ -26,6 +26,13 @@ logged_in_users = [
     }
 ]
 
+saved_messages = [
+    {
+        'to' : 'toEmail@gmail.com',
+        'message' : 'CipherMessageInHex'
+    }
+]
+
 @app.route('/')
 def index():
     return "Hello, World!"
@@ -79,6 +86,7 @@ def forward_message():
         'to': request.json['to'],
         'message': request.json['message']
     }
+    saved_messages.append(message);
     return jsonify(message);
 
 if __name__ == '__main__':
