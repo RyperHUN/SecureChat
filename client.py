@@ -120,22 +120,26 @@ class RealClient():
         self.rsa_key = rsa_key;
         self.mail = mail;
         self.rsa_pub_key = self.rsa_key.publickey().exportKey(format='PEM').decode('ASCII');
+        self.rsa_server_pub_key = crypto.import_key('server_pub_key.pem');
+        self.isRegistered = False;
+        #TODO Need server_pub_key to exist!!!
 
     def register(self):
         r = self.client.register_user(self.mail, self.rsa_pub_key);
         if r == 200 or r == 201:
             self.isRegistered = True;
-
-    def send_message(self,message, to):
-        return;
-        #TODO Add saved mail,aes key pairs
-        #return r;
+        return self.isRegistered;
 
     def login(self):
         r = self.client.login(self.mail);
         self.isLoggedIn = True
         self.sessionId = r['sessionId'];
-        return r;
+        return self.isLoggedIn;
+
+    def send_message(self,message, to):
+        return;
+        #TODO Add saved mail,aes key pairs
+        #return r;
 
     def getMessages(self):
         messages = self.client.getMessage();
@@ -156,6 +160,7 @@ def client_test():
 
     print(client.get_user('added_test@gmail.com'));
     print(client.login('added_test@gmail.com'))
+
 #client_test()
 #HTTP codes -> 201 -> first created
 #HTTP codes -> 200 -> already created

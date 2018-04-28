@@ -11,7 +11,7 @@ import crypto_funcs as crypto
 
 class FlaskTestCase(unittest.TestCase):
     def setUp(self):
-        server.init();
+        server.server_key = server.init();
         self.flaskapp = server.app;
         self.app = self.flaskapp.test_client();
         self.flaskapp.config['TESTING'] = True
@@ -22,6 +22,11 @@ class FlaskTestCase(unittest.TestCase):
         server.users.clear();
         server.logged_in_users.clear();
         server.saved_messages.clear();
+
+        self.client1Mail = 'real@gmail.com';
+        self.client2Mail = 'client@gmail.com';
+        self.realClient = client.RealClient(client.Client(client.TestRequest(self.app)), crypto.get_rsa_key(),self.client1Mail);
+        self.realClient2 = client.RealClient(client.Client(client.TestRequest(self.app)), crypto.get_rsa_key(),self.client2Mail);
 
     def user_size_test(self, num):
         jsonAnswer = self.client.get_users();
@@ -63,6 +68,24 @@ class FlaskTestCase(unittest.TestCase):
         message = messages[0];
         message = crypto.decryptString(message, self.aeskey)
         self.assertEqual(message, self.testMessage.decode('UTF-8'));
+
+    def realClient_login_register(self,realClient):
+        success = realClient.register();
+        self.assertTrue(success);
+        success = realClient.login();
+        self.assertTrue(success);
+
+    def test_10_real_client_test(self):
+        self.realClient_login_register(self.realClient);
+        self.realClient_login_register(self.realClient2);
+        self.assertEqual(len(server.users), 2)  # 'User logged in, has sessionId'
+        self.assertEqual(len(server.logged_in_users), 2)  # 'User logged in, has sessionId'
+        #Two clients logged in and registered
+        
+
+
+
+
 
 
 if __name__ == '__main__':

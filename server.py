@@ -34,9 +34,12 @@ saved_messages = [
     }
 ]
 
+server_key = 0;
+
 def init():
     key = crypto.get_rsa_key();
     crypto.save_rsa_key(key, 'server');
+    return key;
 
 @app.route('/')
 def index():
@@ -105,5 +108,5 @@ def get_messages():
     return jsonify(messages);
 
 if __name__ == '__main__':
-    init();
+    server_key = init();
     app.run(debug=True)

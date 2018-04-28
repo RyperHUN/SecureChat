@@ -77,6 +77,15 @@ def save_rsa_key(key, name):
     ofile.write(key.publickey().exportKey(format='PEM').decode('ASCII'));
     ofile.close();
 
+def import_key(name):
+    kfile = open(name, 'r')
+    pubkeystr = kfile.read()
+    kfile.close()
+
+    pubkey = RSA.import_key(pubkeystr)
+    return pubkey;
+
+
 # ------Signing-------
 
 def signMessage(message, priv_rsa_key):
