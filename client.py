@@ -107,3 +107,26 @@ def client_test():
 #client_test()
 #HTTP codes -> 201 -> first created
 #HTTP codes -> 200 -> already created
+
+class ClientControl:
+    def client_Control:
+        command = input();
+        splitted_command = command.split();
+
+        if splitted_command[0].upper() == "LOGIN":
+             Client.login(splitted_command[1]);
+
+        elif splitted_command[0].upper() == "REGISTER":
+             Client.register_user(splitted_command[1]);
+
+        elif splitted_command[0].upper() == "GET":
+             Client.getMessage();
+
+        elif splitted_command[0].upper() == "LOGOUT":
+        #    Client.logout();
+
+        elif splitted_command[0].upper() == "SEND":
+             Client.send_message(splitted_command[2], splitted_command[1]);
+
+        else:
+            print("The command is not valid!");
