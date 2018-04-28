@@ -16,6 +16,7 @@ class FlaskTestCase(unittest.TestCase):
         self.app = self.flaskapp.test_client();
         self.flaskapp.config['TESTING'] = True
         self.flaskapp.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
+        self.testRequest = client.TestRequest(self.app);
         self.client = client.Client(client.TestRequest(self.app));
         self.aeskey = b'0123456789abcdef0123456789abcdef'
         self.testMessage = b'test message';
@@ -55,11 +56,12 @@ class FlaskTestCase(unittest.TestCase):
         self.realClient.key_exchange_start(self.client2Mail);
         self.realClient2.getMessages();
         self.realClient.getMessages();
-        self.assertTrue(len(json.dumps(self.realClient2.savedKeys)) > 0);
-        self.assertTrue(len(json.dumps(self.realClient.savedKeys)) > 0);
+        self.assertTrue(len((self.realClient2.savedKeys)) > 0);
+        self.assertTrue(len((self.realClient.savedKeys)) > 0);
         #print(self.realClient.savedKeys)
         #print(self.realClient2.savedKeys)
         self.realClient.send_message(b'Test message',self.client2Mail);
+        print(json.dumps(self.testRequest.get('/get_all'),indent=4))
         self.assertEqual(len(server.saved_messages), 1);
         messages = self.realClient2.getMessages();
         self.assertEqual(len(messages), 1);

@@ -1,7 +1,7 @@
 import requests
 import crypto_funcs as crypto
 import json
-import time
+import hashlib
 
 class RequestApi:
     def post(self,uri,data):
@@ -267,8 +267,10 @@ class RealClient():
             for elem in key_exchange_request:
                 success, mail, key = self.client.key_exchange_handle(elem, self.mail)
                 if success:
-                    self.savedKeys[mail] = crypto.generateAES(str(key).encode("utf-8"));
+                    self.savedKeys[mail] = self.convertKey(crypto.generateAES(str(key).encode("utf-8")));
 
+    def convertKey(self,key):
+        return hashlib.sha256(key.encode()).digest();
 
     def decryptMessage(self,message):
         mail = message['from'];
