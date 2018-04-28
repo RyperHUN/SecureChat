@@ -48,6 +48,7 @@ class FlaskTestCase(unittest.TestCase):
         self.assertEqual(True, 200 <= r and r <= 201);
         self.assertEqual(len(server.saved_messages), 1);
 
+    #Testing login + getMessage functionality
     def test_03_login_test(self):
         self.test_02_send_message();
         self.login_size_test(0);
