@@ -81,7 +81,7 @@ class Client:
     def crypto_send_message(self, message, to, rsakey, aeskey):
         if to == "server":
             rsa_message = crypto.encrypt_RSA(message, rsakey)
-            hmac = crypto.generate_HMAC(rsa_message, rsakey)
+            hmac = crypto.generate_HMAC(rsa_message, aeskey)
             req = self.request.post('/forward_message',
                                               {
                                                   'message': rsa_message,
@@ -91,7 +91,7 @@ class Client:
             aes_message = crypto.encryptString(message, aeskey)
             to_rsa = crypto.encrypt_RSA(to, rsakey)
             pair = [to_rsa, aes_message]
-            hmac = crypto.generate_HMAC(pair, rsakey)
+            hmac = crypto.generate_HMAC(pair, aeskey)
             req = self.request.post('/forward_message',
                                   {
                                       'to': to_rsa,

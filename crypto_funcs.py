@@ -104,12 +104,12 @@ def validateSigniture(message, pub_rsa_key, signature):
 # ------HMAC-------
 
 def generate_HMAC(message, key):
-    hmac = HMAC.new(key, digestmod=SHA)
+    hmac = HMAC.new(key, digestmod=SHA3_256)
     hmac.update(message)
     return hmac
 
 def check_HMAC(message, key, expected_hmac):
-    hmac = HMAC.new(key, digestmod=SHA)
+    hmac = HMAC.new(key, digestmod=SHA3_256)
     hmac.update(message)
     try:
         hmac.verify(expected_hmac)
