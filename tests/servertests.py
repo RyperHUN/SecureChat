@@ -37,8 +37,17 @@ class FlaskTestCase(unittest.TestCase):
     def test_21_messages(self):
         registerObj = Messages.Register.create(self.client1Mail);
         registerEncrypted = registerObj.encrypt(self.key_rsa_server_pub);
-        Messages.print_json(registerEncrypted);
+
         self.testRequest.post("/register_user", registerEncrypted)
+        registerFinishObj = Messages.Register.createDone(self.client1Mail, 20202, self.key_rsa_client1_pub)
+        registerFinish = registerFinishObj.encrypt(self.key_rsa_server_pub);
+        answer = self.testRequest.postGet("/register_user", registerFinish);
+        Messages.print_json(answer);
+        
+
+    def test_22_messages_small(self):
+        obj = Messages.SymmetricKeyAnswer.create(self.aeskey);
+        encrypted = obj.encrypt(self.key_rsa_client1_pub, self.key_rsa_server_priv);
 
 
 if __name__ == '__main__':

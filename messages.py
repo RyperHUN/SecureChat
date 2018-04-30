@@ -2,6 +2,9 @@ import crypto_funcs as crypto;
 import time,datetime
 
 import json;
+def has_attribute(data, attribute):
+    return attribute in data and data[attribute] is not None
+
 
 def print_json(item):
     parsed = item
@@ -222,7 +225,7 @@ class Register:
                         "code": code
                     },
                     "unsecure": {
-                        "public_key": public_key
+                        "public_key": crypto.RSA_to_str(public_key)
                     }
                 }
             }
@@ -239,6 +242,8 @@ class Register:
         data = message["message"]["data"];
 
         add_rsa_decrypt(data, "secure_rsa", key_my_priv);
+        if has_attribute(data, "unsecure"):
+            data["unsecure"]["public_key"] = crypto.str_to_RSA(data["unsecure"]["public_key"]);
         return True, message;
 
     def decrypt(self, message,  key_sign_pub):
@@ -248,12 +253,13 @@ class SymmetricKeyAnswer():
     def __init__(self, msg):
         self.msg = msg;
 
-    def create(cls,aes_key):
-        return cls({"message": {
+    @staticmethod
+    def create(aes_key):
+        return SymmetricKeyAnswer({"message": {
                 "data": {
                     "secure_rsa": {
                         "timestamp:" : get_time_now(),
-                        "symmetric_key": aes_key
+                        "symmetric_key": crypto.bytes_to_hex(aes_key)
                     }
                 },
                 "signature" : 0
@@ -275,6 +281,7 @@ class SymmetricKeyAnswer():
             return False, None
 
         add_rsa_decrypt(data, "secure_rsa", key_priv_client);
+        data["secure_rsa"]["symmetric_key"] = crypto.hex_to_bytes(data["secure_rsa"]["symmetric_key"])
         return True, message;
 
     def decrypt(self, message, key_priv_client, key_pub_server):

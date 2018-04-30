@@ -3,6 +3,7 @@ from flask import Flask, jsonify, request,abort
 import uuid
 import crypto_funcs as crypto
 import messages as Messages
+import os
 
 app = Flask(__name__)
 
@@ -19,7 +20,7 @@ logged_in_users = [
     {
         'id': 1,
         'mail': u'test@gmail.com',
-        'sessionId' : 'asdasdas'
+        'aes_key' : 'Test key'
     }
 ]
 
@@ -112,17 +113,32 @@ def register_user():
 
 
     message = request.json
-    decrypted = Messages.Register.decryptStatic(message, key_priv_server);
-    if not has_attribute(message, "unsecure"): #Then it is the first step of registration
+    success, decrypted = Messages.Register.decryptStatic(message, key_priv_server);
+    if not has_attribute(message["message"]["data"], "unsecure"): #Then it is the first step of registration
         #TODO Send email with code
         #Save random for mail
         return jsonify({});
 
+    #TODO Drop message if timestamp is old
+    #TODO Verify email code
+    id = users[-1]['id'] + 1 if len(users) > 0 else 1
+    decryptedData = decrypted["message"]["data"];
+    userMail = decryptedData["secure_rsa"]["from"];
+    random_number = os.urandom(50)
+    aesKey = crypto.generateAES(crypto.string_to_byte(str(random_number)))
+    client_pub_key = decryptedData["unsecure"]["public_key"];
+    #TODO Only add user if email does not exists
+    user = {
+        'id': id,
+        'mail': userMail,
+        'public_key': client_pub_key,
+        'aes_key' : aesKey
+    }
+    users.append(user)
 
-
-
-    #users.append(user)
-    return jsonify({})
+    answerObj = Messages.SymmetricKeyAnswer.create(aesKey);
+    encrypted = answerObj.encrypt(client_pub_key, key_priv_server);
+    return jsonify(encrypted)
 
 #curl -i -H "Content-Type: application/json" -X POST -d '{"to":"to@gmail.com", "message":"Decriptedasda"}' http://localhost:5000/forward_message
 @app.route('/forward_message', methods=['POST'])
