@@ -42,7 +42,11 @@ class FlaskTestCase(unittest.TestCase):
         registerFinishObj = Messages.Register.createDone(self.client1Mail, 20202, self.key_rsa_client1_pub)
         registerFinish = registerFinishObj.encrypt(self.key_rsa_server_pub);
         answer = self.testRequest.postGet("/register_user", registerFinish);
-        Messages.print_json(answer);
+
+        success, decrypted = Messages.SymmetricKeyAnswer.decryptStatic(answer,self.key_rsa_client1_priv, self.key_rsa_server_pub);
+        self.assertTrue(success);
+
+        self.client1ServerAes = decrypted["message"]["data"]["secure_rsa"]["symmetric_key"];
         
 
     def test_22_messages_small(self):
