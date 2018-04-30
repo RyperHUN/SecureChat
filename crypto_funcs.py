@@ -5,10 +5,11 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Signature import pss
 from Crypto.Hash import HMAC, SHA, SHA3_256
+from Crypto.Signature import pkcs1_15
 from Crypto.Protocol import KDF
 import binascii
 import hashlib
-import sys
+import os;
 import smtplib
 from random import randint
 
@@ -21,7 +22,6 @@ def encryptString(plaintext, key):
     plaintext = Padding.pad(plaintext, AES.block_size);
 
     iv = get_random_bytes(AES.block_size)
-    print('How many:' , sys.getsizeof(key));
     cipher = AES.new(key, AES.MODE_CBC, iv)
 
     ciphertext = cipher.encrypt(plaintext);
@@ -39,39 +39,22 @@ def decryptString(ciphertextHex, key):
 
     return plaintext.decode('utf-8');
 
-def test_AES():
-    key = b'0123456789abcdef0123456789abcdef'
-    cipherText = encryptString(b"alma a fa alatt", key);
-    print(cipherText);
-    print(decryptString(cipherText,key));
-
 # ------RSA-------
 
 def encrypt_RSA(plaintext, key):
     cipher = PKCS1_OAEP.new(key)
     ciphertext = cipher.encrypt(plaintext)
-    return ciphertext
+    return ciphertext.hex();
 
 
 def decrypt_RSA(ciphertext, key):
     cipher = PKCS1_OAEP.new(key)
-    plaintext = cipher.decrypt(ciphertext)
+    plaintext = cipher.decrypt(binascii.unhexlify(ciphertext))
     return plaintext.decode('utf-8');
 
 def get_rsa_key():
     RSA_key = RSA.generate(1024)
     return RSA_key;
-
-
-def test_rsa():
-    RSA_key = get_rsa_key()
-
-
-    cipherText_RSA = encrypt_RSA(b"RSA a fa alatt", RSA_key.publickey());
-    print(cipherText_RSA.hex())
-
-    plainText_RSA = decrypt_RSA(cipherText_RSA, RSA_key);
-    print(plainText_RSA)
 
 def save_rsa_key(key, name):
     ofile = open(name + '_rsa_key.pem', 'w');
@@ -89,16 +72,27 @@ def import_key(name):
     pubkey = RSA.import_key(pubkeystr)
     return pubkey;
 
+def create_rsa_key(name):
+    priv_name = name + "_rsa_key.pem";
+    pub_name = name + "_rsa_key.pem";
+    if not os.path.isfile(pub_name):
+        key = get_rsa_key();
+        save_rsa_key(key, name);
+        return key, key.publickey();
+    else :
+        key_priv = import_key(priv_name);
+        key_pub  = import_key(pub_name);
+        return key_pub, key_priv;
 
 # ------Signing-------
 
-def signMessage(message, priv_rsa_key):
+def digital_sign_message(message, priv_rsa_key):
     #rsa_private key
     hash_mess = SHA3_256.new(message)
     signature = pss.new(priv_rsa_key).sign(hash_mess)
     return signature
 
-def validateSigniture(message, pub_rsa_key, signature):
+def digital_sign_verify(message, pub_rsa_key, signature):
     verifier = pss.new(pub_rsa_key)
     hash_mess = SHA3_256.new(message)
     try:
@@ -119,20 +113,11 @@ def check_HMAC(message, key, expected_hmac):
     hmac.update(message)
     try:
         hmac.verify(expected_hmac)
-        print("The message '%s' is authentic" % message)
+        return True
     except ValueError:
-        print("The message or the key is wrong")
+        return False
 
-def test_mac():
-    mackey = b'yoursecretMACkey'
-    msg = b'Hello World! HMAC is a keyed hash function. '
-
-    mac = generate_HMAC(msg, mackey);
-    print("Message HMAC");
-    print(mac.hexdigest());
-    print(mac.digest());
-
-    check_HMAC(msg, mackey, b'C\xach\xf8R\x13U\xfaA>\x19\xf6at\x81\x10h\xba\xff\x19');
+#####################
 
 def randInt():
     return random.getrandbits(256)
@@ -142,9 +127,6 @@ def hash(password):
 
 def generateAES(masterkey):
     return SHA3_256.new(masterkey).digest()
-
-
-
 
 #----email verification function----
 
