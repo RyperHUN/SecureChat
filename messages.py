@@ -1,5 +1,6 @@
 import crypto_funcs as crypto;
 import time,datetime
+import copy
 
 import json;
 def has_attribute(data, attribute):
@@ -71,6 +72,7 @@ class KeyExchangeRequest:
                         },
                         "secure_rsa_client": {
                             "message": {
+                                "fromMail" : fromMail,
                                 "timestamp" : get_time_now(),
                                 "isInit" : isInit,
                                 "prime": random
@@ -108,6 +110,14 @@ class KeyExchangeRequest:
 
         return True, message;
 
+    @staticmethod
+    def getSenderMail(message, key_server_priv):
+        msgCopy = copy.deepcopy(message);
+        data = msgCopy["message"]["data"];
+        add_rsa_decrypt(data, "secure_rsa", key_server_priv);
+
+        return data["secure_rsa"]["from"];
+
     def decrypt(self, message, key_aes_server,key_server_priv, key_sign_pub):
         return self.decryptStatic( message, key_aes_server,key_server_priv, key_sign_pub);
 
@@ -136,7 +146,6 @@ class GetKeyExchangeRequest:
         data = message["message"]["data"];
         add_aes_encrypt(data,"secure_aes_server", key_aes_server);
         add_rsa_encrypt(data,"secure_rsa", key_server_pub);
-        add_signature_custom(data,"secure_rsa_client", key_sign_priv);
         add_signature_data(message, key_sign_priv);
 
         return message;

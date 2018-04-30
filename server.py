@@ -20,7 +20,8 @@ logged_in_users = [
     {
         'id': 1,
         'mail': u'test@gmail.com',
-        'aes_key' : 'Test key'
+        'aes_key' : 'Test key',
+        'public_key': 'client_pub_key',
     }
 ]
 
@@ -45,10 +46,10 @@ key_exchange = [
     }
 ]
 
-def authenticate_user(sessionId):
-    foundEmail = [elem for elem in logged_in_users if elem['sessionId'] == sessionId];
-    if len(foundEmail) == 1:
-        return True, foundEmail[0]['mail']
+def authenticate_user(mail):
+    foundUser = [elem for elem in users if elem['mail'] == mail];
+    if len(foundUser) == 1:
+        return True, foundUser[0]
     else :
         return False, None
 
@@ -157,18 +158,30 @@ def forward_message():
 
 @app.route('/key_exchange_request', methods=['POST'])
 def key_exchange_post():
-    if not request.json :
+    if not request.json or not has_attribute(request.json, "message"):
         abort(400)
-    # TODO Timestamp
-    message =     {
-        'isInit' : request.json['isInit'],
-        'to' : request.json['to'],
-        'message' : request.json['message'],
-        'macMessage' : request.json['macMessage'],
-        'macEgesz' : request.json['macEgesz']
-    }
+
+    message = request.json
+    mail = Messages.KeyExchangeRequest.getSenderMail(message, key_priv_server);
+    success, user = authenticate_user(mail);
+    if not success:
+        abort(400);
+
+    key_user_pub = user["public_key"];
+    key_aes      = user["aes_key"];
+    success, decrypted = Messages.KeyExchangeRequest.decryptStatic(message, key_aes, key_priv_server, key_user_pub);
+    if not success:
+        abort(400)
+
+    data = message["message"]["data"];
+    toMail = data["secure_aes_server"]["to"];
+    insideSignature = data["signature"];
+    encryptedMessage = data["secure_rsa_client"]
+    message =  Messages.GetKeyExchangeRequest_answer.create(encryptedMessage, insideSignature, toMail);
     key_exchange.append(message);
-    return jsonify(message);
+    print(message.toMail);
+
+    return jsonify({});
 
 @app.route('/key_exchange_get', methods=['POST'])
 def key_exchange_get():

@@ -20,8 +20,8 @@ class FlaskTestCase(unittest.TestCase):
         self.key_rsa_client1_priv, self.key_rsa_client1_pub = crypto.create_rsa_key('client1');
         self.key_rsa_client2_priv, self.key_rsa_client2_pub = crypto.create_rsa_key('client2');
 
-        self.client1Mail = 'real@gmail.com';
-        self.client2Mail = 'client@gmail.com';
+        self.client1Mail = 'FIRST@gmail.com';
+        self.client2Mail = 'SECOND@gmail.com';
         self.realClient = client.RealClient(client.Client(client.TestRequest(self.app)), self.key_rsa_client1_priv,self.client1Mail);
         self.realClient2 = client.RealClient(client.Client(client.TestRequest(self.app)), self.key_rsa_client2_priv,self.client2Mail);
 
@@ -47,7 +47,31 @@ class FlaskTestCase(unittest.TestCase):
         self.assertTrue(success);
 
         self.client1ServerAes = decrypted["message"]["data"]["secure_rsa"]["symmetric_key"];
-        
+        #Testing key exchange request
+        registerObj = Messages.Register.create(self.client2Mail);
+        registerEncrypted = registerObj.encrypt(self.key_rsa_server_pub);
+
+        self.testRequest.post("/register_user", registerEncrypted)
+        registerFinishObj = Messages.Register.createDone(self.client2Mail, 20202, self.key_rsa_client2_pub)
+        registerFinish = registerFinishObj.encrypt(self.key_rsa_server_pub);
+        answer = self.testRequest.postGet("/register_user", registerFinish);
+
+        success, decrypted = Messages.SymmetricKeyAnswer.decryptStatic(answer, self.key_rsa_client2_priv,
+                                                                       self.key_rsa_server_pub);
+        self.assertTrue(success);
+
+        self.client2ServerAes = decrypted["message"]["data"]["secure_rsa"]["symmetric_key"];
+        #Two AES keys exchanged with server
+        rand1 = 2000;
+        obj = Messages.KeyExchangeRequest.create(self.client1Mail,self.client2Mail,rand1,True);
+        encrypted = obj.encrypt(self.client1ServerAes, self.key_rsa_server_pub, self.key_rsa_client2_pub, self.key_rsa_client1_priv);
+        self.testRequest.post('/key_exchange_request', encrypted);
+
+        obj = Messages.GetKeyExchangeRequest.create(self.client2Mail);
+        encrypted = obj.encrypt(self.client2ServerAes, self.key_rsa_server_pub, self.key_rsa_client2_priv);
+        #keyExchEncrypted = self.testRequest.postGet('/key_exchange_get', encrypted);
+        #Messages.GetKeyExchangeRequest_answer.decryptStatic(keyExchEncrypted, self.client2ServerAes)
+
 
     def test_22_messages_small(self):
         obj = Messages.SymmetricKeyAnswer.create(self.aeskey);
