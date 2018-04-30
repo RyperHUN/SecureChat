@@ -144,16 +144,33 @@ def register_user():
 #curl -i -H "Content-Type: application/json" -X POST -d '{"to":"to@gmail.com", "message":"Decriptedasda"}' http://localhost:5000/forward_message
 @app.route('/forward_message', methods=['POST'])
 def forward_message():
-    if not request.json :
+    if not request.json or not has_attribute(request.json, "message"):
         abort(400)
-    # TODO Timestamp
-    message = {
-        'to': request.json['to'],
-        'from': request.json['from'],
-        'message': request.json['message']
-    }
-    saved_messages.append(message);
-    return jsonify(message);
+
+    message = request.json
+    fromMail = Messages.ForwardMessage.getSenderMail(message, key_priv_server);
+    success, user = authenticate_user(fromMail);
+    if not success:
+        abort(400);
+
+    key_user_pub = user["public_key"];
+    key_aes      = user["aes_key"];
+    success, decrypted = Messages.ForwardMessage.decryptStatic(message, key_aes, key_priv_server, key_user_pub);
+    if not success:
+        abort(400)
+
+    decryptedData = decrypted["message"]["data"]
+
+    toMail = decryptedData["secure_aes_server"]["to"];
+    success, toUser = authenticate_user(toMail);
+    if not success:
+        abort(400);
+
+    receiver_aes = toUser["aes_key"];
+    obj = Messages.GetMessage_answer.create(fromMail, toMail, decryptedData["secure_aes_client"], decryptedData["signature"]);
+
+    saved_messages.append(obj);
+    return jsonify({});
 
 
 @app.route('/key_exchange_request', methods=['POST'])

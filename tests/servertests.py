@@ -15,6 +15,7 @@ class FlaskTestCase(unittest.TestCase):
         self.client = client.Client(client.TestRequest(self.app));
         self.aeskey = b'0123456789abcdef0123456789abcdef'
         self.testMessage = b'test message';
+        self.testMessageStr = crypto.byte_to_string(self.testMessage);
 
         self.key_rsa_server_priv, self.key_rsa_server_pub = crypto.create_rsa_key('server');
         self.key_rsa_client1_priv, self.key_rsa_client1_pub = crypto.create_rsa_key('client1');
@@ -102,6 +103,15 @@ class FlaskTestCase(unittest.TestCase):
         prime_2 = decrypted["message"]["data"]["secure_aes_server"]["secure_rsa_client"]["message"]["prime"];
         self.assertEqual(prime_2, rand2);
         self.assertEqual(len(server.key_exchange), 0);
+
+        #TODO create key with DH
+        #This is now self.aesKey;
+        obj = Messages.ForwardMessage.create(self.client1Mail, self.client2Mail,self.testMessageStr);
+        encrypted = obj.encrypt(self.client1ServerAes, self.key_rsa_server_pub, self.aeskey, self.key_rsa_client1_priv);
+        self.testRequest.post('/forward_message', encrypted);
+
+        self.assertEqual(len(server.saved_messages), 1);
+
 
     def test_22_messages_small(self):
         obj = Messages.SymmetricKeyAnswer.create(self.aeskey);
