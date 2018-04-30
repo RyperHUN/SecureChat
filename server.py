@@ -179,7 +179,6 @@ def key_exchange_post():
     encryptedMessage = data["secure_rsa_client"]
     message =  Messages.GetKeyExchangeRequest_answer.create(encryptedMessage, insideSignature, toMail);
     key_exchange.append(message);
-    print(message.toMail);
 
     return jsonify({});
 
@@ -187,13 +186,27 @@ def key_exchange_post():
 def key_exchange_get():
     if not request.json :
         abort(400)
-    sessionId = request.json['sessionId'];
-    success, foundEmail = authenticate_user(sessionId);
-    messages = [elem for elem in key_exchange if elem['to'] == foundEmail];
+
+    message = request.json;
+    mail = Messages.GetKeyExchangeRequest.getSenderMail(message,key_priv_server);
+    success, user = authenticate_user(mail);
+    if not success:
+        abort(400);
+
+    #TODO Now only works for 1 key_exchange
+    messages = [elem for elem in key_exchange if elem.toMail == mail];
+    if len(messages) == 0:
+        return jsonify({});
+
+    keyExchangeMessage = messages[0];
+    key_user_pub = user["public_key"];
+    key_aes = user["aes_key"];
+    encryptedAnswer = keyExchangeMessage.encrypt(key_aes, key_priv_server);
+
     for logged in key_exchange:
-        if logged['to'] == foundEmail:
+        if logged.toMail == mail:
             key_exchange.remove(logged);
-    return jsonify(messages);
+    return jsonify(encryptedAnswer);
 
 
 

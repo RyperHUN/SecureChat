@@ -149,6 +149,16 @@ class GetKeyExchangeRequest:
         add_signature_data(message, key_sign_priv);
 
         return message;
+
+    @staticmethod
+    def getSenderMail(message, key_server_priv):
+        msgCopy = copy.deepcopy(message);
+        data = msgCopy["message"]["data"];
+        add_rsa_decrypt(data, "secure_rsa", key_server_priv);
+
+        return data["secure_rsa"]["mail"];
+
+
     @staticmethod
     def decryptStatic(message, key_aes_server,key_server_priv, key_sign_pub):
         data = message["message"]["data"];
@@ -175,10 +185,10 @@ class GetKeyExchangeRequest_answer:
                     "data": {
                         "secure_aes_server": {
                             "secure_rsa_client": secure_rsa_client,
-                             "signature":signature
+                             "signature":signature # signed by client
                         }
                     },
-                    "signature": 0#sign_by_client(data)
+                    "signature": 0#sign_by_server(data)
                 }
             })
 
@@ -197,7 +207,7 @@ class GetKeyExchangeRequest_answer:
             return False, None
 
         add_aes_decrypt(data, "secure_aes_server", key_aes_server);
-        if not verify_signature_data(message, key_client_pub):
+        if not verify_signature_custom(data["secure_aes_server"],"secure_rsa_client", key_client_pub):
             print("Signature error")
             return False, None
 

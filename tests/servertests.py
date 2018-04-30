@@ -61,17 +61,45 @@ class FlaskTestCase(unittest.TestCase):
         self.assertTrue(success);
 
         self.client2ServerAes = decrypted["message"]["data"]["secure_rsa"]["symmetric_key"];
+        self.assertEqual(len(server.users),2);
         #Two AES keys exchanged with server
         rand1 = 2000;
         obj = Messages.KeyExchangeRequest.create(self.client1Mail,self.client2Mail,rand1,True);
         encrypted = obj.encrypt(self.client1ServerAes, self.key_rsa_server_pub, self.key_rsa_client2_pub, self.key_rsa_client1_priv);
         self.testRequest.post('/key_exchange_request', encrypted);
+        self.assertEqual(len(server.key_exchange), 1);
 
         obj = Messages.GetKeyExchangeRequest.create(self.client2Mail);
         encrypted = obj.encrypt(self.client2ServerAes, self.key_rsa_server_pub, self.key_rsa_client2_priv);
-        #keyExchEncrypted = self.testRequest.postGet('/key_exchange_get', encrypted);
-        #Messages.GetKeyExchangeRequest_answer.decryptStatic(keyExchEncrypted, self.client2ServerAes)
+        keyExchEncrypted = self.testRequest.postGet('/key_exchange_get', encrypted);
 
+        success, decrypted = Messages.GetKeyExchangeRequest_answer.decryptStatic(keyExchEncrypted, self.client2ServerAes,
+                                                     self.key_rsa_server_pub, self.key_rsa_client1_pub, self.key_rsa_client2_priv);
+        self.assertTrue(success)
+        prime = decrypted["message"]["data"]["secure_aes_server"]["secure_rsa_client"]["message"]["prime"];
+        self.assertEqual(prime, rand1);
+        self.assertEqual(len(server.key_exchange), 0);
+        rand2 = 5000;
+        ###
+        obj = Messages.KeyExchangeRequest.create(self.client2Mail, self.client1Mail, rand2, False);
+        encrypted = obj.encrypt(self.client2ServerAes, self.key_rsa_server_pub, self.key_rsa_client1_pub,
+                                self.key_rsa_client2_priv);
+        self.testRequest.post('/key_exchange_request', encrypted);
+        self.assertEqual(len(server.key_exchange), 1);
+
+        obj = Messages.GetKeyExchangeRequest.create(self.client1Mail);
+        encrypted = obj.encrypt(self.client1ServerAes, self.key_rsa_server_pub, self.key_rsa_client1_priv);
+        keyExchEncrypted = self.testRequest.postGet('/key_exchange_get', encrypted);
+
+        success, decrypted = Messages.GetKeyExchangeRequest_answer.decryptStatic(keyExchEncrypted,
+                                                                                 self.client1ServerAes,
+                                                                                 self.key_rsa_server_pub,
+                                                                                 self.key_rsa_client2_pub,
+                                                                                 self.key_rsa_client1_priv);
+        self.assertTrue(success)
+        prime_2 = decrypted["message"]["data"]["secure_aes_server"]["secure_rsa_client"]["message"]["prime"];
+        self.assertEqual(prime_2, rand2);
+        self.assertEqual(len(server.key_exchange), 0);
 
     def test_22_messages_small(self):
         obj = Messages.SymmetricKeyAnswer.create(self.aeskey);
