@@ -84,48 +84,6 @@ class Client:
         #print(r.status_code)
         return r;
 
-##########################################################
-    # ha már van közös szimetrikus kulcs a receiverrel, kell közös kulcs a szerverrel is ha hmac-et használunk
-    def crypto_after_DH_send_message(self, message, to, server_pub_rsa, aes_with_receiver, symetric_key_with_server):
-        if to == "server":
-            rsa_message = crypto.encrypt_RSA(message, server_pub_rsa)
-            hmac = crypto.generate_HMAC(rsa_message, symetric_key_with_server)
-            req = self.request.post('/forward_message',
-                                              {
-                                                  'message': rsa_message,
-                                                  'mac': hmac
-                                              });
-        else:
-            aes_message = crypto.encryptString(message, aes_with_receiver)
-            to_rsa = crypto.encrypt_RSA(to, server_pub_rsa)
-            pair = [to_rsa, aes_message]
-            hmac = crypto.generate_HMAC(pair, aes_with_receiver)
-            req = self.request.post('/forward_message',
-                                  {
-                                      'to': to_rsa,
-                                      'message': aes_message,
-                                      'mac': hmac
-                                  });
-        return req
-
-    # ha még nincsen közösen megegyezett kulcs
-    def crypto_before_DH_send_message(self, message, to, server_pub_rsa,  aes_with_receiver, receiver_pub_rsa):
-        if to == "server":
-            rsa_message = crypto.encrypt_RSA(message, server_pub_rsa)
-            req = self.request.post('/forward_message',
-                                              {
-                                                  'message': rsa_message,
-                                              });
-        else:
-            aes_message = crypto.encryptString(message, aes_with_receiver)
-            to_rsa = crypto.encrypt_RSA(to, server_pub_rsa)
-            req = self.request.post('/forward_message',
-                                  {
-                                      'to': to_rsa,
-                                      'message': aes_message,
-                                  });
-        return req
-#############################################################
     #message : prim + from
     def send_key_exchange(self, A, to,fromMail, isInit):
         #TODO Send normal SECRET request
@@ -147,18 +105,14 @@ class Client:
         g = crypto.DHGen
         x = crypto.randInt()
 
-        #TODO Solve prime problem
-        #A = g**x % p
         A = pow(g, x, p)
         self.send_key_exchange(A, to,fromMail, True);
         return x;
 
     def diffie_hellman_send_finish(self, x, B):
         p = crypto.DHPrime
-        K = x;
-        #TODO Solve prime problem
+
         K = pow(B, x, p)
-        #K = B**x % p
         return K;
 
     def diffie_hellman_receive(self, number, toMail, fromMail):
@@ -170,8 +124,6 @@ class Client:
         y = crypto.randInt()
 
         B = pow(g, y, p)
-        #TODO Solve prime
-        #B = g**y % p
         self.send_key_exchange(B, toMail, fromMail, False);
         K = pow(A, y, p)
         return K;
@@ -267,7 +219,7 @@ class RealClient():
             for elem in key_exchange_request:
                 success, mail, key = self.client.key_exchange_handle(elem, self.mail)
                 if success:
-                    self.savedKeys[mail] = crypto.generateAES(str(key).encode("utf-8"));
+                    self.savedKeys[mail] = crypto.generateAES(crypto.string_to_byte(str(key)));
 
 
     def decryptMessage(self,message):

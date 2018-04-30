@@ -9,12 +9,40 @@ from Crypto.Signature import pkcs1_15
 from Crypto.Protocol import KDF
 import binascii
 import hashlib
+import json;
 import os;
 import smtplib
 from random import randint
 
 DHPrime=int("FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6BF12FFA06D98A0864D87602733EC86A64521F2B18177B200CBBE117577A615D6C770988C0BAD946E208E24FA074E5AB3143DB5BFCE0FD108E4B82D120A92108011A723C12A787E6D788719A10BDBA5B2699C327186AF4E23C1A946834B6150BDA2583E9CA2AD44CE8DBBBC2DB04DE8EF92E8EFC141FBECAA6287C59474E6BC05D99B2964FA090C3A2233BA186515BE7ED1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA993B4EA988D8FDDC186FFB7DC90A6C08F4DF435C934063199FFFFFFFFFFFFFFFF",16)
 DHGen = 2
+
+####
+#Helpers
+def string_to_byte(str):
+    return str.encode('utf-8');
+
+def byte_to_string(bytes):
+    return bytes.decode('utf-8');
+
+def hex_to_bytes(hex):
+    return binascii.unhexlify(hex);
+
+def bytes_to_hex(bytes):
+    return bytes.hex();
+
+def dict_to_bytes(dict):
+    return string_to_byte(json.dumps(dict))
+
+def bytes_to_dict(the_binary):
+    return json.loads(byte_to_string(the_binary))
+
+def RSA_to_str(rsa_key):
+    return rsa_key.exportKey(format='PEM').decode('ASCII');
+
+def str_to_RSA(str):
+    return RSA.import_key(str);
+##
 
 
 def encryptString(plaintext, key):
@@ -28,7 +56,7 @@ def encryptString(plaintext, key):
     return (iv + ciphertext).hex();
 
 def decryptString(ciphertextHex, key):
-    ciphertext = binascii.unhexlify(ciphertextHex)
+    ciphertext = hex_to_bytes(ciphertextHex)
     iv = ciphertext[:AES.block_size]
     ciphertext = ciphertext[AES.block_size:]
 
@@ -46,11 +74,16 @@ def encrypt_RSA(plaintext, key):
     ciphertext = cipher.encrypt(plaintext)
     return ciphertext.hex();
 
-
-def decrypt_RSA(ciphertext, key):
+def decrypt_RSA_toBytes(ciphertext, key):
     cipher = PKCS1_OAEP.new(key)
-    plaintext = cipher.decrypt(binascii.unhexlify(ciphertext))
-    return plaintext.decode('utf-8');
+    bytes = binascii.unhexlify(ciphertext);
+    plaintext = cipher.decrypt(bytes)
+    return plaintext;
+
+def decrypt_RSA_toStr(ciphertext, key):
+    return decrypt_RSA_toBytes(ciphertext,key).decode('utf-8');
+
+
 
 def get_rsa_key():
     RSA_key = RSA.generate(1024)
@@ -125,8 +158,8 @@ def randInt():
 def hash(password):
     return SHA3_256.new(password).hexdigest()
 
-def generateAES(masterkey):
-    return SHA3_256.new(masterkey).digest()
+def generateAES(masterkey_bin):
+    return SHA3_256.new(masterkey_bin).digest()
 
 #----email verification function----
 

@@ -1,9 +1,11 @@
 import unittest
 import crypto_funcs as crypto
+import messages
 
 class CryptoTestCases(unittest.TestCase):
     def setUp(self):
         self.testMessageBin = b"alma a fa alatt";
+        self.testMessageUtf = crypto.byte_to_string(self.testMessageBin);
         self.testMessageUtf = self.testMessageBin.decode('utf-8');
         self.key_AES = key = b'0123456789abcdef0123456789abcdef';
 
@@ -24,7 +26,7 @@ class CryptoTestCases(unittest.TestCase):
     def test_92_RSA(self):
         RSA_key = self.key_rsa_client1_priv;
         cipherText_RSA = crypto.encrypt_RSA(self.testMessageBin, RSA_key.publickey());
-        plainText_RSA = crypto.decrypt_RSA(cipherText_RSA, RSA_key);
+        plainText_RSA = crypto.decrypt_RSA_toStr(cipherText_RSA, RSA_key);
         self.assertEqual(plainText_RSA, self.testMessageUtf);
 
     def test_93_DigitalSignature(self):
@@ -42,6 +44,7 @@ class CryptoTestCases(unittest.TestCase):
 
         #hmac_check = crypto.check_HMAC(self.testMessageBin, mackey, mac.digest());
         #self.assertTrue(hmac_check);
+
 
 if __name__ == '__main__':
     unittest.main()

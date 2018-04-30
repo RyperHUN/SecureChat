@@ -2,6 +2,7 @@ import client
 import server
 import unittest
 import crypto_funcs as crypto
+import messages as Messages;
 
 class FlaskTestCase(unittest.TestCase):
     def setUp(self):
@@ -62,7 +63,7 @@ class FlaskTestCase(unittest.TestCase):
         self.assertEqual(len(server.saved_messages), 1);
         messages = self.realClient2.getMessages();
         self.assertEqual(len(messages), 1);
-        self.assertEqual(messages[0],self.testMessage.decode('utf-8'))
+        self.assertEqual(messages[0],crypto.byte_to_string(self.testMessage))
 
     def test_12_login_test(self):
         self.assertFalse(self.realClient.login());
@@ -72,6 +73,15 @@ class FlaskTestCase(unittest.TestCase):
         self.assertEqual(len(server.logged_in_users), 1);
         self.assertTrue(self.realClient.login())
         self.assertEqual(len(server.logged_in_users), 1);
+
+    def test_20_key_exchange_message(self):
+        rnd = 123123123;
+        msgObj = Messages.KeyExchangeRequest.create(self.client1Mail, self.client2Mail, rnd, True);
+        encrypted = msgObj.encrypt(self.aeskey, self.key_rsa_server_pub, self.key_rsa_client2_pub, self.key_rsa_client1_priv);
+        success, decripted = msgObj.decrypt(encrypted, self.aeskey, self.key_rsa_server_priv, self.key_rsa_client1_pub);
+        self.assertTrue(success);
+        Messages.add_rsa_decrypt(decripted["message"]["data"], "secure_rsa_client", self.key_rsa_client2_priv);
+        self.assertEqual(decripted, encrypted);
 
 
 if __name__ == '__main__':
