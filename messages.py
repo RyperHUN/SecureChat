@@ -238,7 +238,7 @@ class Register:
     def decryptStatic(message, key_my_priv):
         data = message["message"]["data"];
 
-        add_rsa_decrypt(data["secure_aes_server"], "secure_rsa_client", key_my_priv);
+        add_rsa_decrypt(data, "secure_rsa", key_my_priv);
         return True, message;
 
     def decrypt(self, message,  key_sign_pub):

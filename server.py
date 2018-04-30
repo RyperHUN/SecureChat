@@ -2,6 +2,7 @@
 from flask import Flask, jsonify, request,abort
 import uuid
 import crypto_funcs as crypto
+import messages as Messages
 
 app = Flask(__name__)
 
@@ -50,12 +51,19 @@ def authenticate_user(sessionId):
     else :
         return False, None
 
-server_key = 0;
+def has_attribute(data, attribute):
+    return attribute in data and data[attribute] is not None
+
+key_priv_server = 0;
+key_pub_server = 0;
 
 def init():
-    key = crypto.get_rsa_key();
-    crypto.save_rsa_key(key, 'server');
-    return key;
+    key_pub, key_private = crypto.create_rsa_key("server");
+    key_exchange.clear();
+    saved_messages.clear();
+    logged_in_users.clear();
+    users.clear();
+    return key_pub, key_private;
 
 @app.route('/')
 def index():
@@ -76,7 +84,7 @@ def get_user(user_mail):
 
 @app.route('/login', methods=['POST'])
 def login():
-    if not request.json :
+    if not request.json:
         abort(400)
     mail = request.json['mail'];
     user = [user for user in users if user['mail'] == mail]
@@ -99,16 +107,22 @@ def login():
 #curl -i -H "Content-Type: application/json" -X POST -d '{"mail":"added_test@gmail.com", "public_key":"123key"}' http://localhost:5000/register_user
 @app.route('/register_user', methods=['POST'])
 def register_user():
-    if not request.json :
+    if not request.json or not has_attribute(request.json, "message"):
         abort(400)
-    id = users[-1]['id'] + 1 if len(users) > 0 else 1
-    user = {
-        'id': id,
-        'mail': request.json['mail'],
-        'public_key': request.json['public_key']
-    }
-    users.append(user)
-    return jsonify(user), 201
+
+
+    message = request.json
+    decrypted = Messages.Register.decryptStatic(message, key_priv_server);
+    if not has_attribute(message, "unsecure"): #Then it is the first step of registration
+        #TODO Send email with code
+        #Save random for mail
+        return jsonify({});
+
+
+
+
+    #users.append(user)
+    return jsonify({})
 
 #curl -i -H "Content-Type: application/json" -X POST -d '{"to":"to@gmail.com", "message":"Decriptedasda"}' http://localhost:5000/forward_message
 @app.route('/forward_message', methods=['POST'])
@@ -165,5 +179,5 @@ def get_messages():
     return jsonify(messages);
 
 if __name__ == '__main__':
-    server_key = init();
+    key_pub_server, key_priv_server = init();
     app.run(debug=True)

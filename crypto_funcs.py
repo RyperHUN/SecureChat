@@ -111,7 +111,7 @@ def create_rsa_key(name):
     if not os.path.isfile(pub_name):
         key = get_rsa_key();
         save_rsa_key(key, name);
-        return key, key.publickey();
+        return key.publickey(),key;
     else :
         key_priv = import_key(priv_name);
         key_pub  = import_key(pub_name);
