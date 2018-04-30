@@ -83,6 +83,11 @@ class FlaskTestCase(unittest.TestCase):
         Messages.add_rsa_decrypt(decripted["message"]["data"], "secure_rsa_client", self.key_rsa_client2_priv);
         self.assertEqual(decripted, encrypted);
 
+    def test_21_messages(self):
+        registerObj = Messages.Register.create(self.client1Mail);
+        registerEncrypted = registerObj.encrypt(self.key_rsa_server_pub);
+        self.testRequest.post("/register", registerEncrypted)
+        
 
 if __name__ == '__main__':
     unittest.main()

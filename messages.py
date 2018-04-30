@@ -56,6 +56,7 @@ class KeyExchangeRequest:
     def __init__(self, msg):
         self.msg = msg;
 
+    @staticmethod
     def create(fromMail, toMail, random, isInit):
         return KeyExchangeRequest({"message": {
                     "data": {
@@ -112,6 +113,7 @@ class GetKeyExchangeRequest:
     def __init__(self, msg):
         self.msg = msg;
 
+    @staticmethod
     def create(mail):
         return GetKeyExchangeRequest({"message": {
                     "data": {
@@ -155,8 +157,9 @@ class GetKeyExchangeRequest_answer:
         self.toMail = toMail;
         self.msg = msg;
 
-    def create(cls,secure_rsa_client, signature,toMail):
-        return cls(toMail,{"message": {
+    @staticmethod
+    def create(secure_rsa_client, signature,toMail):
+        return GetKeyExchangeRequest_answer(toMail,{"message": {
                     "data": {
                         "secure_aes_server": {
                             "secure_rsa_client": secure_rsa_client,
@@ -197,8 +200,9 @@ class Register:
     def __init__(self, msg):
         self.msg = msg;
 
-    def create(cls,fromMail):
-        return cls({"message": {
+    @staticmethod
+    def create(fromMail):
+        return Register({"message": {
                     "data": {
                         "secure_rsa": {
                             "timestamp:" : get_time_now(),
@@ -207,8 +211,10 @@ class Register:
                     }
                 }
             });
-    def create(cls,fromMail, code, public_key):
-        return cls({"message": {
+
+    @staticmethod
+    def createDone(fromMail, code, public_key):
+        return Register({"message": {
                 "data": {
                     "secure_rsa": {
                         "timestamp:": get_time_now(),
