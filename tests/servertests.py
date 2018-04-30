@@ -72,7 +72,8 @@ class FlaskTestCase(unittest.TestCase):
         obj = Messages.GetKeyExchangeRequest.create(self.client2Mail);
         encrypted = obj.encrypt(self.client2ServerAes, self.key_rsa_server_pub, self.key_rsa_client2_priv);
         keyExchEncrypted = self.testRequest.postGet('/key_exchange_get', encrypted);
-
+        mail = Messages.GetKeyExchangeRequest_answer.getSenderMail(keyExchEncrypted, self.client2ServerAes);
+        self.assertEqual(mail, self.client1Mail);
         success, decrypted = Messages.GetKeyExchangeRequest_answer.decryptStatic(keyExchEncrypted, self.client2ServerAes,
                                                      self.key_rsa_server_pub, self.key_rsa_client1_pub, self.key_rsa_client2_priv);
         self.assertTrue(success)
@@ -90,7 +91,8 @@ class FlaskTestCase(unittest.TestCase):
         obj = Messages.GetKeyExchangeRequest.create(self.client1Mail);
         encrypted = obj.encrypt(self.client1ServerAes, self.key_rsa_server_pub, self.key_rsa_client1_priv);
         keyExchEncrypted = self.testRequest.postGet('/key_exchange_get', encrypted);
-
+        mail = Messages.GetKeyExchangeRequest_answer.getSenderMail(keyExchEncrypted, self.client1ServerAes);
+        self.assertEqual(mail, self.client2Mail);
         success, decrypted = Messages.GetKeyExchangeRequest_answer.decryptStatic(keyExchEncrypted,
                                                                                  self.client1ServerAes,
                                                                                  self.key_rsa_server_pub,

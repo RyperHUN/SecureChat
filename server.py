@@ -162,8 +162,8 @@ def key_exchange_post():
         abort(400)
 
     message = request.json
-    mail = Messages.KeyExchangeRequest.getSenderMail(message, key_priv_server);
-    success, user = authenticate_user(mail);
+    fromMail = Messages.KeyExchangeRequest.getSenderMail(message, key_priv_server);
+    success, user = authenticate_user(fromMail);
     if not success:
         abort(400);
 
@@ -177,7 +177,7 @@ def key_exchange_post():
     toMail = data["secure_aes_server"]["to"];
     insideSignature = data["signature"];
     encryptedMessage = data["secure_rsa_client"]
-    message =  Messages.GetKeyExchangeRequest_answer.create(encryptedMessage, insideSignature, toMail);
+    message =  Messages.GetKeyExchangeRequest_answer.create(encryptedMessage, insideSignature, toMail,fromMail);
     key_exchange.append(message);
 
     return jsonify({});
