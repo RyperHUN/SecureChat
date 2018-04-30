@@ -396,12 +396,12 @@ class GetMessage_answer:
     def create(fromMail, toMail, secure_aes_client, signature):
         return GetMessage_answer(toMail,{"message": {
                     "data": {
-                        "secure_aes_server": {
-                            "fromMail" : fromMail,
-                            "to":toMail,
-                            "timestamp" : get_time_now()
-                        },
                         "secure_aes_client": secure_aes_client,
+                        "secure_aes_server": {
+                            "fromMail": fromMail,
+                            "to": toMail,
+                            "timestamp": get_time_now()
+                        },
                         "signature": signature#sign_by_client1(secure_aes_client)
                     },
                     "signature": 0#sign_by_server(data)
@@ -413,7 +413,6 @@ class GetMessage_answer:
         data = message["message"]["data"];
         add_aes_encrypt(data,"secure_aes_server", key_aes_server);
         add_signature_data(message, key_sign_priv);
-        
 
         return message;
     @staticmethod
@@ -428,7 +427,7 @@ class GetMessage_answer:
             return False, None
 
         add_aes_decrypt(data, "secure_aes_server", key_aes_server);
-        add_rsa_decrypt(data, "secure_rsa", key_aes_client);
+        add_aes_decrypt(data, "secure_aes_client", key_aes_client);
 
         return True, message;
 
