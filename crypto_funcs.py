@@ -132,7 +132,8 @@ def digital_sign_verify(message, pub_rsa_key, signature):
     try:
         verifier.verify(hash_mess, signature)
         return True
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as e:
+        print(e);
         return False
 
 # ------HMAC-------

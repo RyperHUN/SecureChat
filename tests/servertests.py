@@ -112,6 +112,19 @@ class FlaskTestCase(unittest.TestCase):
 
         self.assertEqual(len(server.saved_messages), 1);
 
+        obj = Messages.GetMessage.create(self.client2Mail);
+        encrypted = obj.encrypt(self.client2ServerAes,self.key_rsa_server_pub, self.key_rsa_client1_priv);
+        answer = self.testRequest.postGet('/get_messages',encrypted);
+
+        sender = Messages.GetMessage_answer.getSenderMail(answer,self.client2ServerAes);
+        self.assertEqual(sender, self.client1Mail);
+        print(answer["message"]["signature"])
+        success, decrypted = Messages.GetMessage_answer.decryptStatic(answer, self.client2ServerAes, self.aeskey, self.key_rsa_server_pub, self.key_rsa_client1_pub);
+        self.assertTrue(success);
+        Messages.print_json(decrypted);
+
+
+
 
     def test_22_messages_small(self):
         obj = Messages.SymmetricKeyAnswer.create(self.aeskey);

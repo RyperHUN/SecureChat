@@ -205,7 +205,7 @@ def key_exchange_get():
         abort(400)
 
     message = request.json;
-    mail = Messages.GetKeyExchangeRequest.getSenderMail(message,key_priv_server);
+    mail = Messages.GetKeyExchangeRequest.getSenderMail(message, key_priv_server);
     success, user = authenticate_user(mail);
     if not success:
         abort(400);
@@ -229,13 +229,26 @@ def key_exchange_get():
 
 @app.route('/get_messages', methods=['POST'])
 def get_messages():
-    sessionId = request.json['sessionId']
-    #Find email for sessin id
-    success, foundEmail = authenticate_user(sessionId)
-    #Find messages for email
-    messages = [elem for elem in saved_messages if elem['to'] == foundEmail];
-    #TODO Remove these elements
-    return jsonify(messages);
+    if not request.json or not has_attribute(request.json, "message"):
+        abort(400)
+
+    message = request.json
+    fromMail = Messages.GetMessage.getSenderMail(message, key_priv_server);
+    success, user = authenticate_user(fromMail);
+    if not success:
+        abort(400);
+
+    messages = [elem for elem in saved_messages if elem.toEmail == fromMail];
+
+    if len(messages) == 0:
+        return jsonify({});
+
+    key_aes = user["aes_key"];
+    #TODO Solve for more messages
+    message = messages[0];
+    encrypted = message.encrypt(key_aes, key_priv_server);
+
+    return jsonify(encrypted);
 
 if __name__ == '__main__':
     key_pub_server, key_priv_server = init();
