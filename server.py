@@ -2,6 +2,8 @@
 from flask import Flask, jsonify, request,abort
 import uuid
 import crypto_funcs as crypto
+import messages as Messages
+import os
 
 app = Flask(__name__)
 
@@ -18,7 +20,8 @@ logged_in_users = [
     {
         'id': 1,
         'mail': u'test@gmail.com',
-        'sessionId' : 'asdasdas'
+        'aes_key' : 'Test key',
+        'public_key': 'client_pub_key',
     }
 ]
 
@@ -43,19 +46,26 @@ key_exchange = [
     }
 ]
 
-def authenticate_user(sessionId):
-    foundEmail = [elem for elem in logged_in_users if elem['sessionId'] == sessionId];
-    if len(foundEmail) == 1:
-        return True, foundEmail[0]['mail']
+def authenticate_user(mail):
+    foundUser = [elem for elem in users if elem['mail'] == mail];
+    if len(foundUser) == 1:
+        return True, foundUser[0]
     else :
         return False, None
 
-server_key = 0;
+def has_attribute(data, attribute):
+    return attribute in data and data[attribute] is not None
+
+key_priv_server = 0;
+key_pub_server = 0;
 
 def init():
-    key = crypto.get_rsa_key();
-    crypto.save_rsa_key(key, 'server');
-    return key;
+    key_pub, key_private = crypto.create_rsa_key("server");
+    key_exchange.clear();
+    saved_messages.clear();
+    logged_in_users.clear();
+    users.clear();
+    return key_pub, key_private;
 
 @app.route('/')
 def index():
@@ -76,7 +86,7 @@ def get_user(user_mail):
 
 @app.route('/login', methods=['POST'])
 def login():
-    if not request.json :
+    if not request.json:
         abort(400)
     mail = request.json['mail'];
     user = [user for user in users if user['mail'] == mail]
@@ -99,71 +109,147 @@ def login():
 #curl -i -H "Content-Type: application/json" -X POST -d '{"mail":"added_test@gmail.com", "public_key":"123key"}' http://localhost:5000/register_user
 @app.route('/register_user', methods=['POST'])
 def register_user():
-    if not request.json :
+    if not request.json or not has_attribute(request.json, "message"):
         abort(400)
+
+
+    message = request.json
+    success, decrypted = Messages.Register.decryptStatic(message, key_priv_server);
+    if not has_attribute(message["message"]["data"], "unsecure"): #Then it is the first step of registration
+        #TODO Send email with code
+        #Save random for mail
+        return jsonify({});
+
+    #TODO Drop message if timestamp is old
+    #TODO Verify email code
     id = users[-1]['id'] + 1 if len(users) > 0 else 1
+    decryptedData = decrypted["message"]["data"];
+    userMail = decryptedData["secure_rsa"]["from"];
+    random_number = os.urandom(50)
+    aesKey = crypto.generateAES(crypto.string_to_byte(str(random_number)))
+    client_pub_key = decryptedData["unsecure"]["public_key"];
+    #TODO Only add user if email does not exists
     user = {
         'id': id,
-        'mail': request.json['mail'],
-        'public_key': request.json['public_key']
+        'mail': userMail,
+        'public_key': client_pub_key,
+        'aes_key' : aesKey
     }
     users.append(user)
-    return jsonify(user), 201
+
+    answerObj = Messages.SymmetricKeyAnswer.create(aesKey);
+    encrypted = answerObj.encrypt(client_pub_key, key_priv_server);
+    return jsonify(encrypted)
 
 #curl -i -H "Content-Type: application/json" -X POST -d '{"to":"to@gmail.com", "message":"Decriptedasda"}' http://localhost:5000/forward_message
 @app.route('/forward_message', methods=['POST'])
 def forward_message():
-    if not request.json :
+    if not request.json or not has_attribute(request.json, "message"):
         abort(400)
-    # TODO Timestamp
-    message = {
-        'to': request.json['to'],
-        'from': request.json['from'],
-        'message': request.json['message']
-    }
-    saved_messages.append(message);
-    return jsonify(message);
+
+    message = request.json
+    fromMail = Messages.ForwardMessage.getSenderMail(message, key_priv_server);
+    success, user = authenticate_user(fromMail);
+    if not success:
+        abort(400);
+
+    key_user_pub = user["public_key"];
+    key_aes      = user["aes_key"];
+    success, decrypted = Messages.ForwardMessage.decryptStatic(message, key_aes, key_priv_server, key_user_pub);
+    if not success:
+        abort(400)
+
+    decryptedData = decrypted["message"]["data"]
+
+    toMail = decryptedData["secure_aes_server"]["to"];
+    success, toUser = authenticate_user(toMail);
+    if not success:
+        abort(400);
+
+    receiver_aes = toUser["aes_key"];
+    obj = Messages.GetMessage_answer.create(fromMail, toMail, decryptedData["secure_aes_client"], decryptedData["signature"]);
+
+    saved_messages.append(obj);
+    return jsonify({});
 
 
 @app.route('/key_exchange_request', methods=['POST'])
 def key_exchange_post():
-    if not request.json :
+    if not request.json or not has_attribute(request.json, "message"):
         abort(400)
-    # TODO Timestamp
-    message =     {
-        'isInit' : request.json['isInit'],
-        'to' : request.json['to'],
-        'message' : request.json['message'],
-        'macMessage' : request.json['macMessage'],
-        'macEgesz' : request.json['macEgesz']
-    }
+
+    message = request.json
+    fromMail = Messages.KeyExchangeRequest.getSenderMail(message, key_priv_server);
+    success, user = authenticate_user(fromMail);
+    if not success:
+        abort(400);
+
+    key_user_pub = user["public_key"];
+    key_aes      = user["aes_key"];
+    success, decrypted = Messages.KeyExchangeRequest.decryptStatic(message, key_aes, key_priv_server, key_user_pub);
+    if not success:
+        abort(400)
+
+    data = message["message"]["data"];
+    toMail = data["secure_aes_server"]["to"];
+    insideSignature = data["signature"];
+    encryptedMessage = data["secure_rsa_client"]
+    message =  Messages.GetKeyExchangeRequest_answer.create(encryptedMessage, insideSignature, toMail,fromMail);
     key_exchange.append(message);
-    return jsonify(message);
+
+    return jsonify({});
 
 @app.route('/key_exchange_get', methods=['POST'])
 def key_exchange_get():
     if not request.json :
         abort(400)
-    sessionId = request.json['sessionId'];
-    success, foundEmail = authenticate_user(sessionId);
-    messages = [elem for elem in key_exchange if elem['to'] == foundEmail];
+
+    message = request.json;
+    mail = Messages.GetKeyExchangeRequest.getSenderMail(message, key_priv_server);
+    success, user = authenticate_user(mail);
+    if not success:
+        abort(400);
+
+    #TODO Now only works for 1 key_exchange
+    messages = [elem for elem in key_exchange if elem.toMail == mail];
+    if len(messages) == 0:
+        return jsonify({});
+
+    keyExchangeMessage = messages[0];
+    key_user_pub = user["public_key"];
+    key_aes = user["aes_key"];
+    encryptedAnswer = keyExchangeMessage.encrypt(key_aes, key_priv_server);
+
     for logged in key_exchange:
-        if logged['to'] == foundEmail:
+        if logged.toMail == mail:
             key_exchange.remove(logged);
-    return jsonify(messages);
+    return jsonify(encryptedAnswer);
 
 
 
 @app.route('/get_messages', methods=['POST'])
 def get_messages():
-    sessionId = request.json['sessionId']
-    #Find email for sessin id
-    success, foundEmail = authenticate_user(sessionId)
-    #Find messages for email
-    messages = [elem for elem in saved_messages if elem['to'] == foundEmail];
-    #TODO Remove these elements
-    return jsonify(messages);
+    if not request.json or not has_attribute(request.json, "message"):
+        abort(400)
+
+    message = request.json
+    fromMail = Messages.GetMessage.getSenderMail(message, key_priv_server);
+    success, user = authenticate_user(fromMail);
+    if not success:
+        abort(400);
+
+    messages = [elem for elem in saved_messages if elem.toEmail == fromMail];
+
+    if len(messages) == 0:
+        return jsonify({});
+
+    key_aes = user["aes_key"];
+    #TODO Solve for more messages
+    message = messages[0];
+    encrypted = message.encrypt(key_aes, key_priv_server);
+
+    return jsonify(encrypted);
 
 if __name__ == '__main__':
-    server_key = init();
+    key_pub_server, key_priv_server = init();
     app.run(debug=True)

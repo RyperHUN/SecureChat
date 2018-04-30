@@ -1,7 +1,11 @@
 import crypto_funcs as crypto;
 import time,datetime
+import copy
 
 import json;
+def has_attribute(data, attribute):
+    return attribute in data and data[attribute] is not None
+
 
 def print_json(item):
     parsed = item
@@ -56,6 +60,7 @@ class KeyExchangeRequest:
     def __init__(self, msg):
         self.msg = msg;
 
+    @staticmethod
     def create(fromMail, toMail, random, isInit):
         return KeyExchangeRequest({"message": {
                     "data": {
@@ -67,6 +72,7 @@ class KeyExchangeRequest:
                         },
                         "secure_rsa_client": {
                             "message": {
+                                "fromMail" : fromMail,
                                 "timestamp" : get_time_now(),
                                 "isInit" : isInit,
                                 "prime": random
@@ -104,6 +110,14 @@ class KeyExchangeRequest:
 
         return True, message;
 
+    @staticmethod
+    def getSenderMail(message, key_server_priv):
+        msgCopy = copy.deepcopy(message);
+        data = msgCopy["message"]["data"];
+        add_rsa_decrypt(data, "secure_rsa", key_server_priv);
+
+        return data["secure_rsa"]["from"];
+
     def decrypt(self, message, key_aes_server,key_server_priv, key_sign_pub):
         return self.decryptStatic( message, key_aes_server,key_server_priv, key_sign_pub);
 
@@ -112,6 +126,7 @@ class GetKeyExchangeRequest:
     def __init__(self, msg):
         self.msg = msg;
 
+    @staticmethod
     def create(mail):
         return GetKeyExchangeRequest({"message": {
                     "data": {
@@ -131,10 +146,19 @@ class GetKeyExchangeRequest:
         data = message["message"]["data"];
         add_aes_encrypt(data,"secure_aes_server", key_aes_server);
         add_rsa_encrypt(data,"secure_rsa", key_server_pub);
-        add_signature_custom(data,"secure_rsa_client", key_sign_priv);
         add_signature_data(message, key_sign_priv);
 
         return message;
+
+    @staticmethod
+    def getSenderMail(message, key_server_priv):
+        msgCopy = copy.deepcopy(message);
+        data = msgCopy["message"]["data"];
+        add_rsa_decrypt(data, "secure_rsa", key_server_priv);
+
+        return data["secure_rsa"]["mail"];
+
+
     @staticmethod
     def decryptStatic(message, key_aes_server,key_server_priv, key_sign_pub):
         data = message["message"]["data"];
@@ -155,15 +179,17 @@ class GetKeyExchangeRequest_answer:
         self.toMail = toMail;
         self.msg = msg;
 
-    def create(cls,secure_rsa_client, signature,toMail):
-        return cls(toMail,{"message": {
+    @staticmethod
+    def create(secure_rsa_client, signature,toMail,fromMail):
+        return GetKeyExchangeRequest_answer(toMail,{"message": {
                     "data": {
                         "secure_aes_server": {
+                            "fromMail": fromMail,
                             "secure_rsa_client": secure_rsa_client,
-                             "signature":signature
+                             "signature":signature # signed by client
                         }
                     },
-                    "signature": 0#sign_by_client(data)
+                    "signature": 0#sign_by_server(data)
                 }
             })
 
@@ -182,12 +208,20 @@ class GetKeyExchangeRequest_answer:
             return False, None
 
         add_aes_decrypt(data, "secure_aes_server", key_aes_server);
-        if not verify_signature_data(message, key_client_pub):
+        if not verify_signature_custom(data["secure_aes_server"],"secure_rsa_client", key_client_pub):
             print("Signature error")
             return False, None
 
         add_rsa_decrypt(data["secure_aes_server"], "secure_rsa_client", key_my_priv);
         return True, message;
+
+    @staticmethod
+    def getSenderMail(message, key_aes_server):
+        msgCopy = copy.deepcopy(message);
+        data = msgCopy["message"]["data"];
+        add_aes_decrypt(data, "secure_aes_server", key_aes_server);
+
+        return data["secure_aes_server"]["fromMail"];
 
     def decrypt(self, message, key_aes_server,key_server_priv, key_sign_pub):
         return self.decryptStatic( message, key_aes_server,key_server_priv, key_sign_pub);
@@ -197,8 +231,9 @@ class Register:
     def __init__(self, msg):
         self.msg = msg;
 
-    def create(cls,fromMail):
-        return cls({"message": {
+    @staticmethod
+    def create(fromMail):
+        return Register({"message": {
                     "data": {
                         "secure_rsa": {
                             "timestamp:" : get_time_now(),
@@ -207,8 +242,10 @@ class Register:
                     }
                 }
             });
-    def create(cls,fromMail, code, public_key):
-        return cls({"message": {
+
+    @staticmethod
+    def createDone(fromMail, code, public_key):
+        return Register({"message": {
                 "data": {
                     "secure_rsa": {
                         "timestamp:": get_time_now(),
@@ -216,7 +253,7 @@ class Register:
                         "code": code
                     },
                     "unsecure": {
-                        "public_key": public_key
+                        "public_key": crypto.RSA_to_str(public_key)
                     }
                 }
             }
@@ -232,22 +269,190 @@ class Register:
     def decryptStatic(message, key_my_priv):
         data = message["message"]["data"];
 
-        add_rsa_decrypt(data["secure_aes_server"], "secure_rsa_client", key_my_priv);
+        add_rsa_decrypt(data, "secure_rsa", key_my_priv);
+        if has_attribute(data, "unsecure"):
+            data["unsecure"]["public_key"] = crypto.str_to_RSA(data["unsecure"]["public_key"]);
         return True, message;
 
     def decrypt(self, message,  key_sign_pub):
         return self.decryptStatic( message, key_sign_pub);
 
+
+class ForwardMessage:
+    def __init__(self, msg):
+        self.msg = msg;
+
+    @staticmethod
+    def create(fromMail, toMail, text):
+        return ForwardMessage({"message": {
+                    "data": {
+                        "secure_rsa":{
+                            "from": fromMail
+                        },
+                        "secure_aes_server": {
+                            "to":toMail
+                        },
+                        "secure_aes_client": {
+                            "message": {
+                                "message" : text,
+                                "timestamp" : get_time_now(),
+                            }
+                        },
+                        "signature": 0#sign_by_client1(secure_aes_client)
+                    },
+                    "signature": 0#sign_by_client1(data)
+                }
+            })
+
+    def encrypt(self, key_aes_server,key_server_pub,key_receiver_aes, key_sign_priv):
+        message = self.msg;
+        data = message["message"]["data"];
+        add_aes_encrypt(data,"secure_aes_server", key_aes_server);
+        add_rsa_encrypt(data,"secure_rsa", key_server_pub);
+        add_aes_encrypt(data, "secure_aes_client", key_receiver_aes);
+        add_signature_custom(data,"secure_aes_client", key_sign_priv);
+        add_signature_data(message, key_sign_priv);
+
+        return message;
+    @staticmethod
+    def decryptStatic(message, key_aes_server,key_server_priv, key_sign_pub):
+        data = message["message"]["data"];
+        if not verify_signature_data(message, key_sign_pub):
+            print("Signature error")
+            return False, None
+
+        add_aes_decrypt(data, "secure_aes_server", key_aes_server);
+        add_rsa_decrypt(data, "secure_rsa", key_server_priv);
+
+        return True, message;
+
+    @staticmethod
+    def getSenderMail(message, key_server_priv):
+        msgCopy = copy.deepcopy(message);
+        data = msgCopy["message"]["data"];
+        add_rsa_decrypt(data, "secure_rsa", key_server_priv);
+
+        return data["secure_rsa"]["from"];
+
+    def decrypt(self, message, key_aes_server,key_server_priv, key_sign_pub):
+        return self.decryptStatic( message, key_aes_server,key_server_priv, key_sign_pub);
+
+class GetMessage:
+    def __init__(self,msg):
+        self.msg = msg;
+
+    @staticmethod
+    def create(fromMail):
+        return GetMessage({"message": {
+                    "data": {
+                        "secure_rsa": {
+                            "mail": fromMail
+                         },
+                        "secure_aes": {
+                            "timestamp" : get_time_now()
+                        },
+                    },
+                    "signature": 0#sign_by_server(data)
+                }
+            })
+
+    def encrypt(self, key_aes_server, key_server_pub,key_sign_priv):
+        message = self.msg;
+        data = message["message"]["data"];
+        add_aes_encrypt(data,"secure_aes", key_aes_server);
+        add_rsa_encrypt(data,"secure_rsa", key_server_pub);
+        add_signature_data(message, key_sign_priv);
+
+        return message;
+    @staticmethod
+    def decryptStatic(message, key_aes_server,key_server_priv, key_sign_pub):
+        data = message["message"]["data"];
+        if not verify_signature_data(message, key_sign_pub):
+            print("Signature error")
+            return False, None
+
+        add_aes_decrypt(data, "secure_aes", key_aes_server);
+        add_rsa_decrypt(data, "secure_rsa", key_server_priv);
+
+        return True, message;
+
+    @staticmethod
+    def getSenderMail(message, key_server_priv):
+        msgCopy = copy.deepcopy(message);
+        data = msgCopy["message"]["data"];
+        add_rsa_decrypt(data, "secure_rsa", key_server_priv);
+
+        return data["secure_rsa"]["mail"];
+
+    def decrypt(self, message, key_aes_server,key_server_priv, key_sign_pub):
+        return self.decryptStatic( message, key_aes_server,key_server_priv, key_sign_pub);
+
+class GetMessage_answer:
+    def __init__(self, toEmail,msg):
+        self.msg = msg;
+        self.toEmail = toEmail;
+
+    @staticmethod
+    def create(fromMail, toMail, secure_aes_client, signature):
+        return GetMessage_answer(toMail,{"message": {
+                    "data": {
+                        "secure_aes_client": secure_aes_client,
+                        "secure_aes_server": {
+                            "fromMail": fromMail,
+                            "to": toMail,
+                            "timestamp": get_time_now()
+                        },
+                        "signature": signature#sign_by_client1(secure_aes_client)
+                    },
+                    "signature": 0#sign_by_server(data)
+                }
+            })
+
+    def encrypt(self, key_aes_server, key_sign_priv):
+        message = self.msg;
+        data = message["message"]["data"];
+        add_aes_encrypt(data,"secure_aes_server", key_aes_server);
+        add_signature_data(message, key_sign_priv);
+
+        return message;
+    @staticmethod
+    def decryptStatic(message, key_aes_server,key_aes_client, key_public_server, key_public_client):
+        data = message["message"]["data"];
+        if not verify_signature_data(message, key_public_server):
+            print("Signature error")
+            return False, None
+
+        if not verify_signature_custom(data, "secure_aes_client", key_public_client):
+            print("Signature error")
+            return False, None
+
+        add_aes_decrypt(data, "secure_aes_server", key_aes_server);
+        add_aes_decrypt(data, "secure_aes_client", key_aes_client);
+
+        return True, message;
+
+    @staticmethod
+    def getSenderMail(message, key_server_aes):
+        msgCopy = copy.deepcopy(message);
+        data = msgCopy["message"]["data"];
+        add_aes_decrypt(data, "secure_aes_server", key_server_aes);
+
+        return data["secure_aes_server"]["fromMail"];
+
+    def decrypt(self, message, key_aes_server,key_server_priv, key_sign_pub):
+        return self.decryptStatic( message, key_aes_server,key_server_priv, key_sign_pub);
+
 class SymmetricKeyAnswer():
     def __init__(self, msg):
         self.msg = msg;
 
-    def create(cls,aes_key):
-        return cls({"message": {
+    @staticmethod
+    def create(aes_key):
+        return SymmetricKeyAnswer({"message": {
                 "data": {
                     "secure_rsa": {
                         "timestamp:" : get_time_now(),
-                        "symmetric_key": aes_key
+                        "symmetric_key": crypto.bytes_to_hex(aes_key)
                     }
                 },
                 "signature" : 0
@@ -269,6 +474,7 @@ class SymmetricKeyAnswer():
             return False, None
 
         add_rsa_decrypt(data, "secure_rsa", key_priv_client);
+        data["secure_rsa"]["symmetric_key"] = crypto.hex_to_bytes(data["secure_rsa"]["symmetric_key"])
         return True, message;
 
     def decrypt(self, message, key_priv_client, key_pub_server):
