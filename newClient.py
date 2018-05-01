@@ -164,6 +164,7 @@ class RealClient():
 
         return success;
 
+    #TODO Login
     def login(self):
         success, sessionId = self.client.login(self.mail);
         self.isLoggedIn = success
@@ -171,27 +172,34 @@ class RealClient():
         self.isRegistered = self.isLoggedIn or self.isRegistered;
         return self.isLoggedIn;
 
-    def send_message(self,message, to):
+    #TODO Get message
+    def send_message(self,to, message):
         assert self.isLoggedIn
-        if to in self.savedKeys.keys():
-            key = self.savedKeys[to];
-            r = self.client.send_message(message, to,self.mail, key);
-            #TODO Add saved mail,aes key pairs
-            return r;
 
+        obj = Messages.ForwardMessage.create(self.mail, to, message);
+        key_aes_client = self.get_aes_key(to);
+        encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, key_aes_client, self.key_rsa_priv);
+        self.testRequest.post('/forward_message', encrypted);
 
+    def get_message(self):
+        obj = Messages.GetMessage.create(self.mail);
+        encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, self.key_rsa_priv);
+        answer = self.testRequest.postGet('/get_messages', encrypted);
 
+        sender = Messages.GetMessage_answer.getSenderMail(answer, self.key_aes_server);
 
+        clientAes = self.get_aes_key(sender);
+        clientPub = self.get_rsa_key(sender);
 
-    def decryptMessage(self,message):
-        mail = message['from'];
-        if mail in self.savedKeys.keys():
-            key = self.savedKeys[mail];
-            decrypted = crypto.decryptString(message['message'],key);
-            return decrypted;
+        success, decrypted = Messages.GetMessage_answer.decryptStatic(answer, self.key_aes_server, clientAes,
+                                                                      self.key_rsa_server_pub,
+                                                                      clientPub);
+        if success:
+            msg = decrypted["message"]["data"]["secure_aes_client"]["message"]["message"];
+            return msg;
+        return "Fail msg"
 
-        return message['message'];
-
+    #TODO Get messages
 
     def getMessages(self):
         assert self.isLoggedIn

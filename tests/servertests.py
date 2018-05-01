@@ -149,5 +149,12 @@ class FlaskTestCase(unittest.TestCase):
         self.assertEqual(len(server.key_exchange), 1); # 1 rmoved 1 added
         self.realClient.saveExchangedKeys();
         self.assertEqual(len(server.key_exchange), 0);
+
+        self.realClient.send_message(self.realClient2.mail, self.testMessageStr);
+        self.assertEqual(len(server.saved_messages), 1);
+
+        msg = self.realClient2.get_message();
+        self.assertEqual(msg, self.testMessageStr)
+
 if __name__ == '__main__':
     unittest.main()
