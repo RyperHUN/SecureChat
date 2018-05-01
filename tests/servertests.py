@@ -139,6 +139,15 @@ class FlaskTestCase(unittest.TestCase):
         self.assertNotEqual(self.realClient2.key_aes_server, None);
         #Two clients registered
 
+        #TODO get public key
+        self.realClient.add_public_key(self.realClient2.mail, self.realClient2.key_rsa_pub);
+        self.realClient2.add_public_key(self.realClient.mail, self.realClient.key_rsa_pub);
 
+        self.realClient.key_exchange_start(self.realClient2.mail);
+        self.assertEqual(len(server.key_exchange), 1);
+        self.realClient2.saveExchangedKeys();
+        self.assertEqual(len(server.key_exchange), 1); # 1 rmoved 1 added
+        self.realClient.saveExchangedKeys();
+        self.assertEqual(len(server.key_exchange), 0);
 if __name__ == '__main__':
     unittest.main()

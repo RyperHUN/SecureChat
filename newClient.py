@@ -4,6 +4,9 @@ import json
 import hashlib
 import messages as Messages
 
+def has_attribute(data, attribute):
+    return attribute in data and data[attribute] is not None
+
 class RequestApi:
     def post(self,uri,data):
         return
@@ -71,6 +74,23 @@ class RealClient():
         };
         self.savedKeys = {};
 
+    def add_public_key(self, mail, pub_key):
+        if (type(pub_key) is str):
+            pub_key = crypto.str_to_RSA(pub_key);
+        if has_attribute(self.savedKeys, mail):
+            self.savedKeys[mail]["rsa_pub_key"] = pub_key;
+        else:
+            self.savedKeys[mail] = {"aes_key": None, "rsa_pub_key": pub_key}
+
+
+    def add_aes_key(self, mail, key):
+        if (type(key) is str):
+            key = crypto.string_to_byte(key);
+        if has_attribute(self.savedKeys, mail):
+            self.savedKeys[mail]["aes_key"] = key;
+        else:
+            self.savedKeys[mail] = {"aes_key" : key, "rsa_pub_key": None}
+
     def register(self):
         assert not self.isLoggedIn
         registerObj = Messages.Register.create(self.mail);
@@ -91,13 +111,58 @@ class RealClient():
 
         self.key_aes_server = decrypted["message"]["data"]["secure_rsa"]["symmetric_key"];
         self.isRegistered = True;
-        self.isLoggedIn = True;
+        self.isLoggedIn = True; #TODO is logged in?
 
         return self.isRegistered;
 
+    def get_rsa_key(self, mail):
+        #TODO if rsa_key_not exist get it from server
+        if(has_attribute(self.savedKeys, mail)):
+            return self.savedKeys[mail]["rsa_pub_key"];
+
+    def get_aes_key(self, mail):
+        #TODO if rsa_key_not exist get it from server
+        if(has_attribute(self.savedKeys, mail)):
+            return self.savedKeys[mail]["aes_key"];
+
     def key_exchange_start(self, toMail):
         assert self.isLoggedIn
-        self.client.key_exchange_request(toMail, self.mail);
+        rand1 = 2000;
+
+        obj = Messages.KeyExchangeRequest.create(self.mail, toMail, rand1, True);
+        encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, self.get_rsa_key(toMail),
+                                self.key_rsa_priv);
+        self.testRequest.post('/key_exchange_request', encrypted);
+
+    def saveExchangedKeys(self):
+        obj = Messages.GetKeyExchangeRequest.create(self.mail);
+        encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, self.key_rsa_priv);
+        keyExchEncrypted = self.testRequest.postGet('/key_exchange_get', encrypted);
+        senderMail = Messages.GetKeyExchangeRequest_answer.getSenderMail(keyExchEncrypted, self.key_aes_server);
+        senderRsa = self.get_rsa_key(senderMail);
+
+        success, decrypted = Messages.GetKeyExchangeRequest_answer.decryptStatic(keyExchEncrypted,
+                                                                                 self.key_aes_server,
+                                                                                 self.key_rsa_server_pub,
+                                                                                 senderRsa,
+                                                                                 self.key_rsa_priv);
+        msg = decrypted["message"]["data"]["secure_aes_server"]["secure_rsa_client"]["message"];
+        rand1 = msg["prime"];
+        #TODO Diffie hellman
+        rand2 = 12312;
+        self.add_aes_key(senderMail, b'0123456789abcdef0123456789abcdef');
+
+
+        isInit = msg["isInit"];
+        if(isInit):
+            obj = Messages.KeyExchangeRequest.create(self.mail, senderMail, rand2, False);
+            encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, senderRsa ,
+                                        self.key_rsa_priv);
+            self.testRequest.post('/key_exchange_request', encrypted);
+
+
+
+        return success;
 
     def login(self):
         success, sessionId = self.client.login(self.mail);
@@ -115,13 +180,7 @@ class RealClient():
             return r;
 
 
-    def saveExchangedKeys(self):
-        isKeyExchange, key_exchange_request = self.client.receive_key_exchanges(self.sessionId);
-        if isKeyExchange:
-            for elem in key_exchange_request:
-                success, mail, key = self.client.key_exchange_handle(elem, self.mail)
-                if success:
-                    self.savedKeys[mail] = crypto.generateAES(crypto.string_to_byte(str(key)));
+
 
 
     def decryptMessage(self,message):
