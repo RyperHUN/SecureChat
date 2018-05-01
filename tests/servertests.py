@@ -1,4 +1,4 @@
-import client
+import newClient as client
 import server
 import unittest
 import crypto_funcs as crypto
@@ -12,7 +12,6 @@ class FlaskTestCase(unittest.TestCase):
         self.flaskapp.config['TESTING'] = True
         self.flaskapp.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
         self.testRequest = client.TestRequest(self.app);
-        self.client = client.Client(client.TestRequest(self.app));
         self.aeskey = b'0123456789abcdef0123456789abcdef'
         self.testMessage = b'test message';
         self.testMessageStr = crypto.byte_to_string(self.testMessage);
@@ -23,8 +22,8 @@ class FlaskTestCase(unittest.TestCase):
 
         self.client1Mail = 'FIRST@gmail.com';
         self.client2Mail = 'SECOND@gmail.com';
-        self.realClient = client.RealClient(client.Client(client.TestRequest(self.app)), self.key_rsa_client1_priv,self.client1Mail);
-        self.realClient2 = client.RealClient(client.Client(client.TestRequest(self.app)), self.key_rsa_client2_priv,self.client2Mail);
+        self.realClient = client.RealClient(client.TestRequest(self.app), self.key_rsa_client1_priv,self.client1Mail);
+        self.realClient2 = client.RealClient(client.TestRequest(self.app), self.key_rsa_client2_priv,self.client2Mail);
 
     def test_20_key_exchange_message(self):
         rnd = 123123123;
@@ -130,6 +129,32 @@ class FlaskTestCase(unittest.TestCase):
         obj = Messages.SymmetricKeyAnswer.create(self.aeskey);
         encrypted = obj.encrypt(self.key_rsa_client1_pub, self.key_rsa_server_priv);
 
+    def test_23_client(self):
+        isRegistered = self.realClient.register();
+        self.assertTrue(isRegistered);
+        self.assertNotEqual(self.realClient.key_aes_server, None);
+
+        isRegistered = self.realClient2.register();
+        self.assertTrue(isRegistered);
+        self.assertNotEqual(self.realClient2.key_aes_server, None);
+        #Two clients registered
+
+        #TODO get public key
+        self.realClient.add_public_key(self.realClient2.mail, self.realClient2.key_rsa_pub);
+        self.realClient2.add_public_key(self.realClient.mail, self.realClient.key_rsa_pub);
+
+        self.realClient.key_exchange_start(self.realClient2.mail);
+        self.assertEqual(len(server.key_exchange), 1);
+        self.realClient2.saveExchangedKeys();
+        self.assertEqual(len(server.key_exchange), 1); # 1 rmoved 1 added
+        self.realClient.saveExchangedKeys();
+        self.assertEqual(len(server.key_exchange), 0);
+
+        self.realClient.send_message(self.realClient2.mail, self.testMessageStr);
+        self.assertEqual(len(server.saved_messages), 1);
+
+        msg = self.realClient2.get_message();
+        self.assertEqual(msg, self.testMessageStr)
 
 if __name__ == '__main__':
     unittest.main()
