@@ -22,8 +22,8 @@ class TestRequest(RequestApi):
     def postGet(self,uri,data):
         r = self.app.post(uri, content_type='application/json',
                           data=json.dumps(data));
-        if r.status_code == 404:
-            return {}
+        if r.status_code == 404 or r.status_code == 400:
+            raise ValueError('Something bad happened');
         return json.loads(r.data);
     def get(self,uri):
         r = self.app.get(uri)
@@ -40,8 +40,8 @@ class ClientRequest(RequestApi):
 
     def postGet(self,uri,data):
         r = requests.post(self.baseUri + uri, json=data)
-        if r.status_code == 404:
-            return {}
+        if r.status_code == 404 or r.status_code == 400:
+            raise ValueError('Something bad happened');
         return r.json()
 
     def get(self,uri):
