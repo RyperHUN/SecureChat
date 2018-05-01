@@ -1,4 +1,4 @@
-import client
+import newClient as client
 import server
 import unittest
 import crypto_funcs as crypto
@@ -12,7 +12,6 @@ class FlaskTestCase(unittest.TestCase):
         self.flaskapp.config['TESTING'] = True
         self.flaskapp.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
         self.testRequest = client.TestRequest(self.app);
-        self.client = client.Client(client.TestRequest(self.app));
         self.aeskey = b'0123456789abcdef0123456789abcdef'
         self.testMessage = b'test message';
         self.testMessageStr = crypto.byte_to_string(self.testMessage);
@@ -23,8 +22,8 @@ class FlaskTestCase(unittest.TestCase):
 
         self.client1Mail = 'FIRST@gmail.com';
         self.client2Mail = 'SECOND@gmail.com';
-        self.realClient = client.RealClient(client.Client(client.TestRequest(self.app)), self.key_rsa_client1_priv,self.client1Mail);
-        self.realClient2 = client.RealClient(client.Client(client.TestRequest(self.app)), self.key_rsa_client2_priv,self.client2Mail);
+        self.realClient = client.RealClient(client.TestRequest(self.app), self.key_rsa_client1_priv,self.client1Mail);
+        self.realClient2 = client.RealClient(client.TestRequest(self.app), self.key_rsa_client2_priv,self.client2Mail);
 
     def test_20_key_exchange_message(self):
         rnd = 123123123;
@@ -129,6 +128,16 @@ class FlaskTestCase(unittest.TestCase):
     def test_22_messages_small(self):
         obj = Messages.SymmetricKeyAnswer.create(self.aeskey);
         encrypted = obj.encrypt(self.key_rsa_client1_pub, self.key_rsa_server_priv);
+
+    def test_23_client(self):
+        isRegistered = self.realClient.register();
+        self.assertTrue(isRegistered);
+        self.assertNotEqual(self.realClient.key_aes_server, None);
+
+        isRegistered = self.realClient2.register();
+        self.assertTrue(isRegistered);
+        self.assertNotEqual(self.realClient2.key_aes_server, None);
+        #Two clients registered
 
 
 if __name__ == '__main__':
