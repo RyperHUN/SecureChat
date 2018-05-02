@@ -98,7 +98,7 @@ class RealClient():
             self.savedKeys[mail] = {"aes_key": None, "rsa_pub_key": None, "random" : random};
         self.savedKeys[mail]["random"] = random;
 
-    def register(self):
+    def com_register(self):
         assert not self.isLoggedIn
         registerObj = Messages.Register.create(self.mail);
         registerEncrypted = registerObj.encrypt(self.key_rsa_server_pub);
@@ -123,7 +123,7 @@ class RealClient():
         return self.isRegistered;
 
     def get_rsa_key(self, mail):
-        self.get_public_key(mail); #Gets RSA key automatically
+        self.comm_get_public_key(mail); #Gets RSA key automatically
         if(has_attribute(self.savedKeys, mail)):
             return self.savedKeys[mail]["rsa_pub_key"];
 
@@ -131,7 +131,7 @@ class RealClient():
         if(has_attribute(self.savedKeys, mail)):
             return self.savedKeys[mail]["aes_key"];
 
-    def key_exchange_start(self, toMail):
+    def comm_key_exchange_start(self, toMail):
         assert self.isLoggedIn
         sentPow, rand = crypto.diffie_hellman_send();
         self.add_random(toMail, rand);
@@ -141,7 +141,7 @@ class RealClient():
                                 self.key_rsa_priv);
         self.testRequest.post('/key_exchange_request', encrypted);
 
-    def saveExchangedKeys(self):
+    def comm_save_exchanged_keys(self):
         obj = Messages.GetKeyExchangeRequest.create(self.mail);
         encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, self.key_rsa_priv);
         messages = self.testRequest.postGet('/key_exchange_get', encrypted);
@@ -182,12 +182,12 @@ class RealClient():
         self.isRegistered = self.isLoggedIn or self.isRegistered;
         return self.isLoggedIn;
 
-    def get_public_key(self,mail):
+    def comm_get_public_key(self, mail):
         public_key_str = self.testRequest.get('/get_public_key/' + mail);
         public_key = crypto.str_to_RSA(public_key_str);
         self.add_public_key(mail, public_key);
 
-    def send_message(self,to, message):
+    def comm_send_message(self, to, message):
         assert self.isLoggedIn
 
         obj = Messages.ForwardMessage.create(self.mail, to, message);
@@ -201,7 +201,7 @@ class RealClient():
 
         self.savedMessages[sender].append(msg);
 
-    def get_message(self):
+    def comm_get_message(self):
         obj = Messages.GetMessage.create(self.mail);
         encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, self.key_rsa_priv);
 
@@ -239,7 +239,7 @@ class ClientControl:
         self.client.logout()
 
     def send_message(self, message, to):
-        self.client.send_message(message, to)
+        self.client.comm_send_message(message, to)
 
     def print_help(self):
         print("Register:        register <e-mail>");
@@ -280,7 +280,7 @@ def test_client_control():
     mail = input();
     realClient = RealClient(Client(ClientRequest('http://127.0.0.1:5000')), crypto.get_rsa_key(), mail);
     if not realClient.login():
-        realClient.register();
+        realClient.com_register();
         realClient.login();
     print('Login succesful, session ID:' , realClient.sessionId);
     clientControl = ClientControl(realClient);

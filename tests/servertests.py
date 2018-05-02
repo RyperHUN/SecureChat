@@ -40,11 +40,11 @@ class FlaskTestCase(unittest.TestCase):
         encrypted = obj.encrypt(self.key_rsa_client1_pub, self.key_rsa_server_priv);
 
     def test_23_client(self):
-        isRegistered = self.realClient.register();
+        isRegistered = self.realClient.com_register();
         self.assertTrue(isRegistered);
         self.assertNotEqual(self.realClient.key_aes_server, None);
 
-        isRegistered = self.realClient2.register();
+        isRegistered = self.realClient2.com_register();
         self.assertTrue(isRegistered);
         self.assertNotEqual(self.realClient2.key_aes_server, None);
         #Two clients registered
@@ -53,19 +53,19 @@ class FlaskTestCase(unittest.TestCase):
         #self.realClient.get_public_key(self.realClient2.mail)
         #self.realClient2.get_public_key(self.realClient.mail)
 
-        self.realClient.key_exchange_start(self.realClient2.mail);
+        self.realClient.comm_key_exchange_start(self.realClient2.mail);
         self.assertEqual(len(server.key_exchange), 1);
-        self.realClient2.saveExchangedKeys();
+        self.realClient2.comm_save_exchanged_keys();
         self.assertEqual(len(server.key_exchange), 1); # 1 rmoved 1 added
-        self.realClient.saveExchangedKeys();
+        self.realClient.comm_save_exchanged_keys();
         self.assertEqual(len(server.key_exchange), 0);
 
         sent_messages = 10;
         for i in range(0,sent_messages):
-            self.realClient.send_message(self.realClient2.mail, self.testMessageStr);
+            self.realClient.comm_send_message(self.realClient2.mail, self.testMessageStr);
         self.assertEqual(len(server.saved_messages), sent_messages);
 
-        msg = self.realClient2.get_message();
+        msg = self.realClient2.comm_get_message();
         self.assertEqual(len(server.saved_messages), 0);
         self.assertEqual(len(msg[self.client1Mail]), sent_messages)
         self.assertEqual(msg[self.client1Mail][0], self.testMessageStr)
