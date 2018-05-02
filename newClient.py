@@ -283,34 +283,32 @@ class ClientControl:
         self.client.comm_send_message(message, to)
 
     def print_help(self):
-        print("Register:        register <e-mail>");
-        print("Login:           login <e-mail>");
+        print("Register:        register");
+        #print("Login:           login <e-mail>");
         print("Send message:    send <to_e-mail> <message>");
         print("Get              get messages")
         print("Logout:          logout");
 
     def client_Control(self):
-        command = input();
-        splitted_command = command.split();
+        read_input = input();
+        splitted_command = read_input.split();
+        command = splitted_command[0].upper();
 
-        if splitted_command[0].upper() == "GET":
+        if command == "GET":
             self.getMessage()
-        elif splitted_command[0].upper() == "LOGOUT":
-            return True;
-            #TODO call logout function
-        elif splitted_command[0].upper() == "SEND":
+        elif command == "SEND":
             self.send_message(splitted_command[2], splitted_command[1]);
-
-        elif splitted_command[0].upper() == "HELP":
+        elif command == "REGISTER":
+            self.register_user("test");
+        elif command == "HELP":
             self.print_help();
-
         else:
             print("The command is not valid!");
-            self.print_help();
 
         return False;
 
     def input_loop(self):
+        self.print_help();
         isQuit = self.client_Control()
         while not isQuit:
             isQuit = self.client_Control();
@@ -319,13 +317,11 @@ class ClientControl:
 def test_client_control():
     print('Enter <mail> to log in');
     mail = input();
-    realClient = RealClient(Client(ClientRequest('http://127.0.0.1:5000')), crypto.get_rsa_key(), mail);
-    if not realClient.login():
-        realClient.com_register();
-        realClient.login();
-    print('Login succesful, session ID:' , realClient.sessionId);
+    splittedMail = mail.split("@");
+    pub, private = crypto.create_rsa_key(splittedMail[0]);
+    realClient = RealClient(ClientRequest('http://127.0.0.1:5000'), private , mail);
     clientControl = ClientControl(realClient);
-    clientControl.print_help();
     clientControl.input_loop();
 
-#test_client_control();
+if __name__ == '__main__':
+    test_client_control();
