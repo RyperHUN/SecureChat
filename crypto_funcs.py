@@ -180,3 +180,32 @@ def send_Verificationemail(to, verificationCode):
     body = '\r\n'.join(['To: %s' % toEmail, 'From: %s' % senderEmail, 'Subject: %s' % subject, '', message])
     server.sendmail(senderEmail, [toEmail], body)
     server.quit()
+
+
+def diffie_hellman_send():
+    #TODO Need to be logged in to used because of sessionId
+    #sender
+    p = DHPrime
+    g = DHGen
+    saveRand = randInt()
+
+    sentPow = pow(g, saveRand, p)
+    return sentPow, saveRand;
+
+def diffie_hellman_send_finish(savedRand, receivedPow):
+    #sender, after receiving back
+    p = DHPrime
+
+    KEY = pow(receivedPow, savedRand, p)
+    return KEY;
+
+def diffie_hellman_receive(receivedPow):
+    #receiver
+    A = receivedPow
+    p = DHPrime
+    g = DHGen
+    myRand = randInt()
+
+    finishPow = pow(g, myRand, p)
+    KEY = pow(A, myRand, p)
+    return finishPow, KEY;

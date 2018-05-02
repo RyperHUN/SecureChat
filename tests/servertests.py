@@ -33,7 +33,7 @@ class FlaskTestCase(unittest.TestCase):
         self.assertTrue(success);
         Messages.add_rsa_decrypt(decripted["message"]["data"], "secure_rsa_client", self.key_rsa_client2_priv);
         self.assertEqual(decripted, encrypted);
-
+    '''
     def test_21_messages(self):
         registerObj = Messages.Register.create(self.client1Mail);
         registerEncrypted = registerObj.encrypt(self.key_rsa_server_pub);
@@ -122,7 +122,7 @@ class FlaskTestCase(unittest.TestCase):
         msg = decrypted["message"]["data"]["secure_aes_client"]["message"]["message"];
         self.assertEqual(msg,self.testMessageStr);
 
-
+    '''
 
 
     def test_22_messages_small(self):
@@ -139,9 +139,8 @@ class FlaskTestCase(unittest.TestCase):
         self.assertNotEqual(self.realClient2.key_aes_server, None);
         #Two clients registered
 
-        #TODO get public key
-        self.realClient.add_public_key(self.realClient2.mail, self.realClient2.key_rsa_pub);
-        self.realClient2.add_public_key(self.realClient.mail, self.realClient.key_rsa_pub);
+        self.realClient.get_public_key(self.realClient2.mail)
+        self.realClient2.get_public_key(self.realClient.mail)
 
         self.realClient.key_exchange_start(self.realClient2.mail);
         self.assertEqual(len(server.key_exchange), 1);
@@ -150,11 +149,15 @@ class FlaskTestCase(unittest.TestCase):
         self.realClient.saveExchangedKeys();
         self.assertEqual(len(server.key_exchange), 0);
 
-        self.realClient.send_message(self.realClient2.mail, self.testMessageStr);
-        self.assertEqual(len(server.saved_messages), 1);
+        sent_messages = 10;
+        for i in range(0,sent_messages):
+            self.realClient.send_message(self.realClient2.mail, self.testMessageStr);
+        self.assertEqual(len(server.saved_messages), sent_messages);
 
         msg = self.realClient2.get_message();
-        self.assertEqual(msg, self.testMessageStr)
+        self.assertEqual(len(server.saved_messages), 0);
+        self.assertEqual(len(msg[self.client1Mail]), sent_messages)
+        self.assertEqual(msg[self.client1Mail][0], self.testMessageStr)
 
 if __name__ == '__main__':
     unittest.main()

@@ -84,6 +84,15 @@ def get_user(user_mail):
     user = [user for user in users if user['mail'] == user_mail]
     return jsonify(user);
 
+@app.route('/get_public_key/<string:user_mail>')
+def get_public_key(user_mail):
+    user = [user for user in users if user['mail'] == user_mail]
+    if(len(user) == 0):
+        abort(404);
+    rsa_key = user[0]['public_key'];
+    rsa_key_str = crypto.RSA_to_str(rsa_key);
+    return jsonify(rsa_key_str);
+
 @app.route('/login', methods=['POST'])
 def login():
     if not request.json:
@@ -202,53 +211,64 @@ def key_exchange_post():
 @app.route('/key_exchange_get', methods=['POST'])
 def key_exchange_get():
     if not request.json :
-        abort(400)
+        return return_error('Not good request');
 
     message = request.json;
     mail = Messages.GetKeyExchangeRequest.getSenderMail(message, key_priv_server);
     success, user = authenticate_user(mail);
     if not success:
-        abort(400);
+        return return_error('Email is not valid');
+
+    key_user_pub = user["public_key"];
+    key_user_aes = user["aes_key"];
+
+    success, decrypted = Messages.GetKeyExchangeRequest.decryptStatic(message,key_user_aes,key_priv_server, key_user_pub)
+    if not success:
+        return return_error('Sender is not valid, signature invalid');
 
     #TODO Now only works for 1 key_exchange
     messages = [elem for elem in key_exchange if elem.toMail == mail];
     if len(messages) == 0:
-        return jsonify({});
+        return return_error('No requests');
 
-    keyExchangeMessage = messages[0];
-    key_user_pub = user["public_key"];
-    key_aes = user["aes_key"];
-    encryptedAnswer = keyExchangeMessage.encrypt(key_aes, key_priv_server);
 
-    for logged in key_exchange:
-        if logged.toMail == mail:
-            key_exchange.remove(logged);
-    return jsonify(encryptedAnswer);
+    encryptedAnswers = [];
+    for message in messages:
+        encryptedAnswer = message.encrypt(key_user_aes, key_priv_server);
 
+        key_exchange.remove(message);
+        encryptedAnswers.append(encryptedAnswer);
+
+    return jsonify(encryptedAnswers);
+
+def return_error(msg):
+    return jsonify([]);
 
 
 @app.route('/get_messages', methods=['POST'])
 def get_messages():
     if not request.json or not has_attribute(request.json, "message"):
-        abort(400)
+        return return_error('Not good request');
 
     message = request.json
     fromMail = Messages.GetMessage.getSenderMail(message, key_priv_server);
     success, user = authenticate_user(fromMail);
     if not success:
-        abort(400);
+        return return_error('No user with supplied email');
 
     messages = [elem for elem in saved_messages if elem.toEmail == fromMail];
 
     if len(messages) == 0:
-        return jsonify({});
+        return return_error('No messages');
 
     key_aes = user["aes_key"];
-    #TODO Solve for more messages
-    message = messages[0];
-    encrypted = message.encrypt(key_aes, key_priv_server);
+    encryptedMessages = []
+    for message in messages:
+        encrypted = message.encrypt(key_aes, key_priv_server);
+        encryptedMessages.append(encrypted);
+        saved_messages.remove(message);
 
-    return jsonify(encrypted);
+    return jsonify(encryptedMessages);
 
 if __name__ == '__main__':
     key_pub_server, key_priv_server = init();
