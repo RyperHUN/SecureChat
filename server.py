@@ -259,6 +259,7 @@ def get_messages():
     for message in messages:
         encrypted = message.encrypt(key_aes, key_priv_server);
         encryptedMessages.append(encrypted);
+        saved_messages.remove(message);
 
     return jsonify(encryptedMessages);
 

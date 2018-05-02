@@ -149,11 +149,14 @@ class FlaskTestCase(unittest.TestCase):
         self.realClient.saveExchangedKeys();
         self.assertEqual(len(server.key_exchange), 0);
 
-        self.realClient.send_message(self.realClient2.mail, self.testMessageStr);
-        self.assertEqual(len(server.saved_messages), 1);
+        sent_messages = 10;
+        for i in range(0,sent_messages):
+            self.realClient.send_message(self.realClient2.mail, self.testMessageStr);
+        self.assertEqual(len(server.saved_messages), sent_messages);
 
         msg = self.realClient2.get_message();
-        self.assertEqual(len(msg[self.client1Mail]), 1)
+        self.assertEqual(len(server.saved_messages), 0);
+        self.assertEqual(len(msg[self.client1Mail]), sent_messages)
         self.assertEqual(msg[self.client1Mail][0], self.testMessageStr)
 
 if __name__ == '__main__':
