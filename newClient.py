@@ -94,6 +94,8 @@ class RealClient():
             self.savedKeys[mail] = {"aes_key" : key, "rsa_pub_key": None}
 
     def add_random(self,mail, random):
+        if not has_attribute(self.savedKeys, mail):
+            self.savedKeys[mail] = {"aes_key": None, "rsa_pub_key": None, "random" : random};
         self.savedKeys[mail]["random"] = random;
 
     def register(self):
@@ -121,12 +123,11 @@ class RealClient():
         return self.isRegistered;
 
     def get_rsa_key(self, mail):
-        #TODO if rsa_key_not exist get it from server
+        self.get_public_key(mail); #Gets RSA key automatically
         if(has_attribute(self.savedKeys, mail)):
             return self.savedKeys[mail]["rsa_pub_key"];
 
     def get_aes_key(self, mail):
-        #TODO if rsa_key_not exist get it from server
         if(has_attribute(self.savedKeys, mail)):
             return self.savedKeys[mail]["aes_key"];
 
