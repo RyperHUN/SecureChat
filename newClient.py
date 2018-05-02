@@ -271,10 +271,11 @@ class ClientControl:
         self.client.login(mail)
 
     def register_user(self, mail):
-        self.client.register_user(mail)
+        self.client.com__register();
 
     def getMessage(self):
-        print(self.client.getMessages());
+        #Messages.print_json()
+        self.client.getMessages();
 
     def logout(self):
         self.client.logout()

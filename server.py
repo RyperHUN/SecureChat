@@ -8,6 +8,8 @@ import os
 app = Flask(__name__)
 
 
+isLogging = True
+
 users = [
     {
         'id': 1,
@@ -45,6 +47,10 @@ key_exchange = [
         'macEgesz' : 'MACTEST'
     }
 ]
+
+def logger(msg):
+    if isLogging:
+        print(msg);
 
 def authenticate_user(mail):
     foundUser = [elem for elem in users if elem['mail'] == mail];
@@ -146,6 +152,8 @@ def register_user():
     }
     users.append(user)
 
+    logger('Registered user : ' + user["mail"]);
+
     answerObj = Messages.SymmetricKeyAnswer.create(aesKey);
     encrypted = answerObj.encrypt(client_pub_key, key_priv_server);
     return jsonify(encrypted)
@@ -175,6 +183,8 @@ def forward_message():
     if not success:
         abort(400);
 
+    logger('Received message from : ' + fromMail);
+
     receiver_aes = toUser["aes_key"];
     obj = Messages.GetMessage_answer.create(fromMail, toMail, decryptedData["secure_aes_client"], decryptedData["signature"]);
 
@@ -199,12 +209,16 @@ def key_exchange_post():
     if not success:
         abort(400)
 
+
+
     data = message["message"]["data"];
     toMail = data["secure_aes_server"]["to"];
     insideSignature = data["signature"];
     encryptedMessage = data["secure_rsa_client"]
     message =  Messages.GetKeyExchangeRequest_answer.create(encryptedMessage, insideSignature, toMail,fromMail);
     key_exchange.append(message);
+
+    logger('Received key exchange resuest from : ' + fromMail + "to:" + toMail);
 
     return jsonify({});
 
@@ -234,6 +248,7 @@ def key_exchange_get():
 
     encryptedAnswers = [];
     for message in messages:
+        logger('Key exchange get (sent from server to this mail) :' + mail);
         encryptedAnswer = message.encrypt(key_user_aes, key_priv_server);
 
         key_exchange.remove(message);
@@ -264,6 +279,7 @@ def get_messages():
     key_aes = user["aes_key"];
     encryptedMessages = []
     for message in messages:
+        logger('Message get (sent from server to this mail) :' + fromMail);
         encrypted = message.encrypt(key_aes, key_priv_server);
         encryptedMessages.append(encrypted);
         saved_messages.remove(message);
