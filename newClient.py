@@ -219,3 +219,71 @@ class RealClient():
                 msg = decrypted["message"]["data"]["secure_aes_client"]["message"]["message"];
                 self.save_msg(sender, msg);
         return self.savedMessages;
+
+
+class ClientControl:
+    def __init__(self, client):
+        self.client = client;
+
+    def login(self, mail):
+        self.client.login(mail)
+
+    def register_user(self, mail):
+        self.client.register_user(mail)
+
+    def getMessage(self):
+        print(self.client.getMessages());
+
+    def logout(self):
+        self.client.logout()
+
+    def send_message(self, message, to):
+        self.client.send_message(message, to)
+
+    def print_help(self):
+        print("Register:        register <e-mail>");
+        print("Login:           login <e-mail>");
+        print("Send message:    send <to_e-mail> <message>");
+        print("Get              get messages")
+        print("Logout:          logout");
+
+    def client_Control(self):
+        command = input();
+        splitted_command = command.split();
+
+        if splitted_command[0].upper() == "GET":
+            self.getMessage()
+        elif splitted_command[0].upper() == "LOGOUT":
+            return True;
+            #TODO call logout function
+        elif splitted_command[0].upper() == "SEND":
+            self.send_message(splitted_command[2], splitted_command[1]);
+
+        elif splitted_command[0].upper() == "HELP":
+            self.print_help();
+
+        else:
+            print("The command is not valid!");
+            self.print_help();
+
+        return False;
+
+    def input_loop(self):
+        isQuit = self.client_Control()
+        while not isQuit:
+            isQuit = self.client_Control();
+
+#TODO Normal API
+def test_client_control():
+    print('Enter <mail> to log in');
+    mail = input();
+    realClient = RealClient(Client(ClientRequest('http://127.0.0.1:5000')), crypto.get_rsa_key(), mail);
+    if not realClient.login():
+        realClient.register();
+        realClient.login();
+    print('Login succesful, session ID:' , realClient.sessionId);
+    clientControl = ClientControl(realClient);
+    clientControl.print_help();
+    clientControl.input_loop();
+
+#test_client_control();

@@ -192,7 +192,6 @@ def send_Verificationemail(to, verificationCode):
 
 
 def diffie_hellman_send():
-    #TODO Need to be logged in to used because of sessionId
     #sender
     p = DHPrime
     g = DHGen
