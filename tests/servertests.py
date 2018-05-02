@@ -53,17 +53,18 @@ class FlaskTestCase(unittest.TestCase):
         #self.realClient.get_public_key(self.realClient2.mail)
         #self.realClient2.get_public_key(self.realClient.mail)
 
-        self.realClient.comm_key_exchange_start(self.realClient2.mail);
-        self.assertEqual(len(server.key_exchange), 1);
-        self.realClient2.comm_save_exchanged_keys();
-        self.assertEqual(len(server.key_exchange), 1); # 1 rmoved 1 added
-        self.realClient.comm_save_exchanged_keys();
-        self.assertEqual(len(server.key_exchange), 0);
-
-        sent_messages = 10;
+        sent_messages = 1;
         for i in range(0,sent_messages):
             self.realClient.comm_send_message(self.realClient2.mail, self.testMessageStr);
-        self.assertEqual(len(server.saved_messages), sent_messages);
+        self.assertEqual(len(server.key_exchange), 1);
+        self.assertEqual(len(server.saved_messages), 0); #Only started key exchange
+        self.realClient2.comm_get_message();
+        #Client2 got the key
+        self.assertTrue(crypto.has_attribute(self.realClient2.savedKeys, self.realClient.mail));
+        self.realClient.comm_get_message();
+        self.assertEqual(len(server.saved_messages), sent_messages);  # Only started key exchange
+        self.realClient2.comm_get_message();
+        self.assertEqual(len(self.realClient2.savedMessages[self.realClient.mail]), sent_messages)
 
         msg = self.realClient2.comm_get_message();
         self.assertEqual(len(server.saved_messages), 0);

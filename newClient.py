@@ -75,6 +75,7 @@ class RealClient():
         };
         self.savedMessages = {};
         self.savedKeys = {};
+        self.savedSendQueue = {};
 
     def add_public_key(self, mail, pub_key):
         if (type(pub_key) is str):
@@ -174,7 +175,34 @@ class RealClient():
                 KEY = crypto.diffie_hellman_send_finish(rand, finishPow);
                 self.add_aes_key(senderMail, crypto.generateAES(KEY))
 
-    #TODO Login
+            self.send_messages_from_queue(senderMail);
+
+
+    def send_messages_from_queue(self,senderMail):
+        if not has_attribute(self.savedSendQueue, senderMail):
+            return
+
+        for message in self.savedSendQueue[senderMail]:
+            self.send_msg_finish(senderMail, message);
+
+    def send_msg_finish(self, to, msgObj):
+        key_aes_client = self.get_aes_key(to);
+        encrypted = msgObj.encrypt(self.key_aes_server, self.key_rsa_server_pub, key_aes_client, self.key_rsa_priv);
+        self.testRequest.post('/forward_message', encrypted);
+
+    def comm_send_message(self, to, message):
+        assert self.isLoggedIn
+
+        obj = Messages.ForwardMessage.create(self.mail, to, message);
+        
+        key_aes_client = self.get_aes_key(to);
+        if key_aes_client == None:
+            self.save_msg_for_queue(to, obj);
+            self.comm_key_exchange_start(to);
+        else:
+            self.send_msg_finish(to, obj);
+
+
     def login(self):
         success, sessionId = self.client.login(self.mail);
         self.isLoggedIn = success
@@ -187,13 +215,22 @@ class RealClient():
         public_key = crypto.str_to_RSA(public_key_str);
         self.add_public_key(mail, public_key);
 
-    def comm_send_message(self, to, message):
-        assert self.isLoggedIn
+    def save_msg_for_queue(self,to, msg):
+        if not has_attribute(self.savedSendQueue,to):
+            self.savedSendQueue[to] = [];
 
-        obj = Messages.ForwardMessage.create(self.mail, to, message);
-        key_aes_client = self.get_aes_key(to);
-        encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, key_aes_client, self.key_rsa_priv);
-        self.testRequest.post('/forward_message', encrypted);
+        self.savedSendQueue[to].append(msg);
+
+    def get_msg_from_queue(self,to):
+        if not has_attribute(self.savedSendQueue, to):
+            return [];
+
+        messages = self.savedSendQueue[to];
+
+        self.savedSendQueue.pop(to); #Delete messages
+        return messages;
+
+
 
     def save_msg(self,sender, msg):
         if not has_attribute(self.savedMessages,sender):
@@ -202,6 +239,7 @@ class RealClient():
         self.savedMessages[sender].append(msg);
 
     def comm_get_message(self):
+        self.comm_save_exchanged_keys();
         obj = Messages.GetMessage.create(self.mail);
         encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, self.key_rsa_priv);
 

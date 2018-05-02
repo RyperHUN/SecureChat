@@ -18,6 +18,8 @@ from random import randint
 DHPrime=1522605027922533360535618378132637429718068114961380688657908494580122963258952897654000350692006139
 DHGen = 2
 
+def has_attribute(data, attribute):
+    return attribute in data and data[attribute] is not None
 
 ####
 #Helpers
