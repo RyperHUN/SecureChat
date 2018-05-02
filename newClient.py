@@ -271,11 +271,12 @@ class ClientControl:
         self.client.login(mail)
 
     def register_user(self, mail):
-        self.client.com__register();
+        self.client.com_register();
 
     def getMessage(self):
         #Messages.print_json()
-        self.client.getMessages();
+        messages = self.client.comm_get_message();
+        print(messages);
 
     def logout(self):
         self.client.logout()
@@ -288,7 +289,7 @@ class ClientControl:
         #print("Login:           login <e-mail>");
         print("Send message:    send <to_e-mail> <message>");
         print("Get              get messages")
-        print("Logout:          logout");
+        #print("Logout:          logout");
 
     def client_Control(self):
         read_input = input();
@@ -298,7 +299,7 @@ class ClientControl:
         if command == "GET":
             self.getMessage()
         elif command == "SEND":
-            self.send_message(splitted_command[2], splitted_command[1]);
+            self.send_message(splitted_command[1],splitted_command[2]);
         elif command == "REGISTER":
             self.register_user("test");
         elif command == "HELP":
