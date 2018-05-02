@@ -84,6 +84,15 @@ def get_user(user_mail):
     user = [user for user in users if user['mail'] == user_mail]
     return jsonify(user);
 
+@app.route('/get_public_key/<string:user_mail>')
+def get_public_key(user_mail):
+    user = [user for user in users if user['mail'] == user_mail]
+    if(len(user) == 0):
+        abort(404);
+    rsa_key = user[0]['public_key'];
+    rsa_key_str = crypto.RSA_to_str(rsa_key);
+    return jsonify(rsa_key_str);
+
 @app.route('/login', methods=['POST'])
 def login():
     if not request.json:

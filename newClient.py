@@ -172,7 +172,11 @@ class RealClient():
         self.isRegistered = self.isLoggedIn or self.isRegistered;
         return self.isLoggedIn;
 
-    #TODO Get message
+    def get_public_key(self,mail):
+        public_key_str = self.testRequest.get('/get_public_key/' + mail);
+        public_key = crypto.str_to_RSA(public_key_str);
+        self.add_public_key(mail, public_key);
+
     def send_message(self,to, message):
         assert self.isLoggedIn
 
@@ -181,6 +185,7 @@ class RealClient():
         encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, key_aes_client, self.key_rsa_priv);
         self.testRequest.post('/forward_message', encrypted);
 
+    #TODO get more messages at the same time
     def get_message(self):
         obj = Messages.GetMessage.create(self.mail);
         encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, self.key_rsa_priv);
