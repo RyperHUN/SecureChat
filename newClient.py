@@ -72,6 +72,7 @@ class RealClient():
                 "rsa_pub_key": "asd"
             }
         };
+        self.savedMessages = {};
         self.savedKeys = {};
 
     def add_public_key(self, mail, pub_key):
@@ -185,24 +186,32 @@ class RealClient():
         encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, key_aes_client, self.key_rsa_priv);
         self.testRequest.post('/forward_message', encrypted);
 
+    def save_msg(self,sender, msg):
+        if not has_attribute(self.savedMessages,sender):
+            self.savedMessages[sender] = [];
+
+        self.savedMessages[sender].append(msg);
+
     #TODO get more messages at the same time
     def get_message(self):
         obj = Messages.GetMessage.create(self.mail);
         encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, self.key_rsa_priv);
-        answer = self.testRequest.postGet('/get_messages', encrypted);
 
-        sender = Messages.GetMessage_answer.getSenderMail(answer, self.key_aes_server);
+        messages = self.testRequest.postGet('/get_messages', encrypted);
+        for message in messages:
+            sender = Messages.GetMessage_answer.getSenderMail(message, self.key_aes_server);
 
-        clientAes = self.get_aes_key(sender);
-        clientPub = self.get_rsa_key(sender);
+            clientAes = self.get_aes_key(sender);
+            clientPub = self.get_rsa_key(sender);
 
-        success, decrypted = Messages.GetMessage_answer.decryptStatic(answer, self.key_aes_server, clientAes,
-                                                                      self.key_rsa_server_pub,
-                                                                      clientPub);
-        if success:
-            msg = decrypted["message"]["data"]["secure_aes_client"]["message"]["message"];
-            return msg;
-        return "Fail msg"
+            success, decrypted = Messages.GetMessage_answer.decryptStatic(message, self.key_aes_server, clientAes,
+                                                                          self.key_rsa_server_pub,
+                                                                          clientPub);
+
+            if success:
+                msg = decrypted["message"]["data"]["secure_aes_client"]["message"]["message"];
+                self.save_msg(sender, msg);
+        return self.savedMessages;
 
     #TODO Get messages
 

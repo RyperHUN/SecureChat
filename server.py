@@ -234,30 +234,33 @@ def key_exchange_get():
             key_exchange.remove(logged);
     return jsonify(encryptedAnswer);
 
+def return_error(msg):
+    return jsonify([]);
 
 
 @app.route('/get_messages', methods=['POST'])
 def get_messages():
     if not request.json or not has_attribute(request.json, "message"):
-        abort(400)
+        return return_error('Not good request');
 
     message = request.json
     fromMail = Messages.GetMessage.getSenderMail(message, key_priv_server);
     success, user = authenticate_user(fromMail);
     if not success:
-        abort(400);
+        return return_error('No user with supplied email');
 
     messages = [elem for elem in saved_messages if elem.toEmail == fromMail];
 
     if len(messages) == 0:
-        return jsonify({});
+        return return_error('No messages');
 
     key_aes = user["aes_key"];
-    #TODO Solve for more messages
-    message = messages[0];
-    encrypted = message.encrypt(key_aes, key_priv_server);
+    encryptedMessages = []
+    for message in messages:
+        encrypted = message.encrypt(key_aes, key_priv_server);
+        encryptedMessages.append(encrypted);
 
-    return jsonify(encrypted);
+    return jsonify(encryptedMessages);
 
 if __name__ == '__main__':
     key_pub_server, key_priv_server = init();

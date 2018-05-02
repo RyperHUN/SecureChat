@@ -33,7 +33,7 @@ class FlaskTestCase(unittest.TestCase):
         self.assertTrue(success);
         Messages.add_rsa_decrypt(decripted["message"]["data"], "secure_rsa_client", self.key_rsa_client2_priv);
         self.assertEqual(decripted, encrypted);
-
+    '''
     def test_21_messages(self):
         registerObj = Messages.Register.create(self.client1Mail);
         registerEncrypted = registerObj.encrypt(self.key_rsa_server_pub);
@@ -122,7 +122,7 @@ class FlaskTestCase(unittest.TestCase):
         msg = decrypted["message"]["data"]["secure_aes_client"]["message"]["message"];
         self.assertEqual(msg,self.testMessageStr);
 
-
+    '''
 
 
     def test_22_messages_small(self):
@@ -153,7 +153,8 @@ class FlaskTestCase(unittest.TestCase):
         self.assertEqual(len(server.saved_messages), 1);
 
         msg = self.realClient2.get_message();
-        self.assertEqual(msg, self.testMessageStr)
+        self.assertEqual(len(msg[self.client1Mail]), 1)
+        self.assertEqual(msg[self.client1Mail][0], self.testMessageStr)
 
 if __name__ == '__main__':
     unittest.main()
