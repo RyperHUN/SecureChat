@@ -69,7 +69,8 @@ class RealClient():
         self.savedKeys = {
             "mail" : {
                 "aes_key": "asd",
-                "rsa_pub_key": "asd"
+                "rsa_pub_key": "asd",
+                "random" : 123
             }
         };
         self.savedMessages = {};
@@ -91,6 +92,9 @@ class RealClient():
             self.savedKeys[mail]["aes_key"] = key;
         else:
             self.savedKeys[mail] = {"aes_key" : key, "rsa_pub_key": None}
+
+    def add_random(self,mail, random):
+        self.savedKeys[mail]["random"] = random;
 
     def register(self):
         assert not self.isLoggedIn
@@ -128,9 +132,10 @@ class RealClient():
 
     def key_exchange_start(self, toMail):
         assert self.isLoggedIn
-        rand1 = 2000;
+        sentPow, rand = crypto.diffie_hellman_send();
+        self.add_random(toMail, rand);
 
-        obj = Messages.KeyExchangeRequest.create(self.mail, toMail, rand1, True);
+        obj = Messages.KeyExchangeRequest.create(self.mail, toMail, sentPow, True);
         encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, self.get_rsa_key(toMail),
                                 self.key_rsa_priv);
         self.testRequest.post('/key_exchange_request', encrypted);
@@ -149,18 +154,24 @@ class RealClient():
                                                                                      senderRsa,
                                                                                      self.key_rsa_priv);
             msg = decrypted["message"]["data"]["secure_aes_server"]["secure_rsa_client"]["message"];
-            rand1 = msg["prime"];
-            #TODO Diffie hellman
-            rand2 = 12312;
-            self.add_aes_key(senderMail, b'0123456789abcdef0123456789abcdef');
-
+            sentData = msg["prime"];
 
             isInit = msg["isInit"];
             if(isInit):
-                obj = Messages.KeyExchangeRequest.create(self.mail, senderMail, rand2, False);
+                # Then I am the receiver
+                receivedPow = sentData;
+                finishPow, KEY = crypto.diffie_hellman_receive(receivedPow);
+                self.add_aes_key(senderMail, crypto.generateAES(KEY));
+                obj = Messages.KeyExchangeRequest.create(self.mail, senderMail, finishPow, False);
                 encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, senderRsa ,
                                             self.key_rsa_priv);
                 self.testRequest.post('/key_exchange_request', encrypted);
+            else:
+                #I am the sender, and I got back a finishPow
+                finishPow = sentData;
+                rand = self.savedKeys[senderMail]["random"];
+                KEY = crypto.diffie_hellman_send_finish(rand, finishPow);
+                self.add_aes_key(senderMail, crypto.generateAES(KEY))
 
     #TODO Login
     def login(self):
@@ -189,7 +200,6 @@ class RealClient():
 
         self.savedMessages[sender].append(msg);
 
-    #TODO get more messages at the same time
     def get_message(self):
         obj = Messages.GetMessage.create(self.mail);
         encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, self.key_rsa_priv);
@@ -209,16 +219,3 @@ class RealClient():
                 msg = decrypted["message"]["data"]["secure_aes_client"]["message"]["message"];
                 self.save_msg(sender, msg);
         return self.savedMessages;
-
-    #TODO Get messages
-
-    def getMessages(self):
-        assert self.isLoggedIn
-
-        messages = self.client.getMessage();
-        self.saveExchangedKeys();
-
-        for i in range(0, len(messages)):
-            messages[i] = self.decryptMessage(messages[i]);
-        #TODO Save messages
-        return messages;
