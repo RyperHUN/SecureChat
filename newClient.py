@@ -134,6 +134,9 @@ class RealClient():
 
     def comm_key_exchange_start(self, toMail):
         assert self.isLoggedIn
+        if has_attribute(self.savedKeys, toMail) and self.savedKeys[toMail]["random"] != None:
+            return; #This means that key exchange already started
+
         sentPow, rand = crypto.diffie_hellman_send();
         self.add_random(toMail, rand);
 
@@ -194,7 +197,7 @@ class RealClient():
         assert self.isLoggedIn
 
         obj = Messages.ForwardMessage.create(self.mail, to, message);
-        
+
         key_aes_client = self.get_aes_key(to);
         if key_aes_client == None:
             self.save_msg_for_queue(to, obj);
