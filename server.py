@@ -211,28 +211,35 @@ def key_exchange_post():
 @app.route('/key_exchange_get', methods=['POST'])
 def key_exchange_get():
     if not request.json :
-        abort(400)
+        return return_error('Not good request');
 
     message = request.json;
     mail = Messages.GetKeyExchangeRequest.getSenderMail(message, key_priv_server);
     success, user = authenticate_user(mail);
     if not success:
-        abort(400);
+        return return_error('Email is not valid');
+
+    key_user_pub = user["public_key"];
+    key_user_aes = user["aes_key"];
+
+    success, decrypted = Messages.GetKeyExchangeRequest.decryptStatic(message,key_user_aes,key_priv_server, key_user_pub)
+    if not success:
+        return return_error('Sender is not valid, signature invalid');
 
     #TODO Now only works for 1 key_exchange
     messages = [elem for elem in key_exchange if elem.toMail == mail];
     if len(messages) == 0:
-        return jsonify({});
+        return return_error('No requests');
 
-    keyExchangeMessage = messages[0];
-    key_user_pub = user["public_key"];
-    key_aes = user["aes_key"];
-    encryptedAnswer = keyExchangeMessage.encrypt(key_aes, key_priv_server);
 
-    for logged in key_exchange:
-        if logged.toMail == mail:
-            key_exchange.remove(logged);
-    return jsonify(encryptedAnswer);
+    encryptedAnswers = [];
+    for message in messages:
+        encryptedAnswer = message.encrypt(key_user_aes, key_priv_server);
+
+        key_exchange.remove(message);
+        encryptedAnswers.append(encryptedAnswer);
+
+    return jsonify(encryptedAnswers);
 
 def return_error(msg):
     return jsonify([]);

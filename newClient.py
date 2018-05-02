@@ -138,32 +138,29 @@ class RealClient():
     def saveExchangedKeys(self):
         obj = Messages.GetKeyExchangeRequest.create(self.mail);
         encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, self.key_rsa_priv);
-        keyExchEncrypted = self.testRequest.postGet('/key_exchange_get', encrypted);
-        senderMail = Messages.GetKeyExchangeRequest_answer.getSenderMail(keyExchEncrypted, self.key_aes_server);
-        senderRsa = self.get_rsa_key(senderMail);
+        messages = self.testRequest.postGet('/key_exchange_get', encrypted);
+        for message in messages:
+            senderMail = Messages.GetKeyExchangeRequest_answer.getSenderMail(message, self.key_aes_server);
+            senderRsa = self.get_rsa_key(senderMail);
 
-        success, decrypted = Messages.GetKeyExchangeRequest_answer.decryptStatic(keyExchEncrypted,
-                                                                                 self.key_aes_server,
-                                                                                 self.key_rsa_server_pub,
-                                                                                 senderRsa,
-                                                                                 self.key_rsa_priv);
-        msg = decrypted["message"]["data"]["secure_aes_server"]["secure_rsa_client"]["message"];
-        rand1 = msg["prime"];
-        #TODO Diffie hellman
-        rand2 = 12312;
-        self.add_aes_key(senderMail, b'0123456789abcdef0123456789abcdef');
-
-
-        isInit = msg["isInit"];
-        if(isInit):
-            obj = Messages.KeyExchangeRequest.create(self.mail, senderMail, rand2, False);
-            encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, senderRsa ,
-                                        self.key_rsa_priv);
-            self.testRequest.post('/key_exchange_request', encrypted);
+            success, decrypted = Messages.GetKeyExchangeRequest_answer.decryptStatic(message,
+                                                                                     self.key_aes_server,
+                                                                                     self.key_rsa_server_pub,
+                                                                                     senderRsa,
+                                                                                     self.key_rsa_priv);
+            msg = decrypted["message"]["data"]["secure_aes_server"]["secure_rsa_client"]["message"];
+            rand1 = msg["prime"];
+            #TODO Diffie hellman
+            rand2 = 12312;
+            self.add_aes_key(senderMail, b'0123456789abcdef0123456789abcdef');
 
 
-
-        return success;
+            isInit = msg["isInit"];
+            if(isInit):
+                obj = Messages.KeyExchangeRequest.create(self.mail, senderMail, rand2, False);
+                encrypted = obj.encrypt(self.key_aes_server, self.key_rsa_server_pub, senderRsa ,
+                                            self.key_rsa_priv);
+                self.testRequest.post('/key_exchange_request', encrypted);
 
     #TODO Login
     def login(self):
