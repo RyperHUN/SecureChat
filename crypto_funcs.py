@@ -176,9 +176,8 @@ def generateAES(masterkey_bin):
 
 #----email verification function----
 
-emailVerificationCode = randint(100000, 999999)
-
-def send_Verificationemail(to, verificationCode):
+def send_Verificationemail(to):
+    verificationCode = randint(100000, 999999)
     toEmail = to
     subject = 'E-mail verification message'
     message = 'E-mail verification code: ' + str(verificationCode)
@@ -191,6 +190,7 @@ def send_Verificationemail(to, verificationCode):
     body = '\r\n'.join(['To: %s' % toEmail, 'From: %s' % senderEmail, 'Subject: %s' % subject, '', message])
     server.sendmail(senderEmail, [toEmail], body)
     server.quit()
+    return verificationCode
 
 
 def diffie_hellman_send():

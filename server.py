@@ -132,11 +132,17 @@ def register_user():
     success, decrypted = Messages.Register.decryptStatic(message, key_priv_server);
     if not has_attribute(message["message"]["data"], "unsecure"): #Then it is the first step of registration
         #TODO Send email with code
+            #verification_code = crypto.send_Verificationemail(message["from"])
+            #store code for email
         #Save random for mail
         return jsonify({});
 
     #TODO Drop message if timestamp is old
     #TODO Verify email code
+        #continue with verification response
+        #received_code = message["code"]
+        #if code != stored_verification_code:
+        #   reset_login_process()
     id = users[-1]['id'] + 1 if len(users) > 0 else 1
     decryptedData = decrypted["message"]["data"];
     userMail = decryptedData["secure_rsa"]["from"];
